@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "module": "nodenext",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    // noUncheckedIndexedAccess is a no-op without strictNullChecks (TS only
+    // adds `| undefined` to indexed access under null checking); it is
+    // enabled here so the flag actually catches unchecked array/object access
+    // in e2e specs, matching tsconfig.app.json's strictness on this point.
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["vite.config.ts", "vitest.setup.ts", "playwright.config.ts", "e2e/**/*.ts"]
+}

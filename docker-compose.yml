@@ -1,0 +1,60 @@
+# Development environment. There is no Node.js on the host: every npm command
+# runs inside a container, the same way the backend runs PHP.
+#
+#   docker compose up                                  dev server on :5173
+#   docker compose up e2e                              end-to-end suite
+#   docker compose run --rm node npm run quality       one-off npm commands
+#
+# A bare `docker compose up` starts only `dev`. `e2e` and `node` sit behind
+# profiles, so they run only when named: `up e2e` runs the suite and exits,
+# and `run --rm node ...` runs one command.
+#
+# network_mode: host is deliberate. The dev server must be reachable at
+# localhost:5173 from the host browser, and the container must reach the
+# backend at localhost:8080 - host networking gives both without a bridge.
+name: quimica-frontend
+
+x-node: &node
+  image: node:22-bookworm-slim
+  working_dir: /app
+  user: "${UID:-1000}:${GID:-1000}"
+  network_mode: host
+  environment:
+    HOME: /home/node
+  volumes:
+    - .:/app
+    - node-home:/home/node
+    - ${BACKEND_DOCS:-../backend/docs}:/backend/docs:ro
+
+services:
+  dev:
+    <<: *node
+    command: [sh, scripts/with-deps.sh, npm, run, dev]
+    init: true
+
+  node:
+    <<: *node
+    profiles: [tools]
+    stdin_open: true
+    tty: true
+
+  # `docker compose up e2e` runs the suite against the real backend and exits.
+  # Browsers and their system libraries are baked into this image, so
+  # `playwright install` never runs here. Stop `dev` first: the suite serves
+  # the production build on 5173 itself.
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1-noble
+    profiles: [e2e]
+    command: [sh, scripts/with-deps.sh, npm, run, test:e2e]
+    init: true
+    working_dir: /app
+    user: "${UID:-1000}:${GID:-1000}"
+    network_mode: host
+    environment:
+      HOME: /home/node
+    volumes:
+      - .:/app
+      - node-home:/home/node
+
+volumes:
+  node-home:
