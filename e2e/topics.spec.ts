@@ -38,7 +38,7 @@ test.describe('topics', () => {
 
     // Icons are inline SVG paths (mdi-svg + @mdi/js). A blank icon - no set
     // configured, or a font class with no font shipped - has no <path d>.
-    await expect(page.getByTestId('theme-toggle').locator('svg path')).toHaveAttribute('d', /\S/)
+    await expect(page.getByTestId('theme-toggle').locator('svg path')).toHaveAttribute('d', /^M/)
 
     // Assert the theme Vuetify actually applies (the v-theme--* class on the app
     // root), not just the stored preference - a broken watcher still writes the key.

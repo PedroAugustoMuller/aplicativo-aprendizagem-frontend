@@ -22,7 +22,8 @@ describe('vuetify icons', () => {
 
     const path = wrapper.find('.v-alert__prepend svg path')
     expect(path.exists()).toBe(true)
-    expect(path.attributes('d')).not.toBe('')
+    // An unresolved alias renders its name (`mdi-alert`) as the path; real SVG path data starts with M.
+    expect(path.attributes('d')).toMatch(/^M/)
     expect(wrapper.find('.v-alert__prepend i.mdi').exists()).toBe(false)
   })
 })

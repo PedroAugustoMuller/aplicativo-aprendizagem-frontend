@@ -8,7 +8,8 @@ module.exports = {
         'npm package, no src/shared, no other layer. An allow-list, so a new framework or helper ' +
         'cannot slip in unnoticed. This is what lets the offline adapter be added later without ' +
         'touching the domain.',
-      from: { path: '^src/modules/([^/]+)/domain/' },
+      // Specs may import their test runner; the rule polices production domain code.
+      from: { path: '^src/modules/([^/]+)/domain/', pathNot: '\\.spec\\.ts$' },
       to: { pathNot: '^src/modules/$1/domain/' },
     },
     {

@@ -184,8 +184,9 @@ dependency-cruiser (`npm run arch`, part of `quality`) fails the build if:
   reach only a module's `application/` and `presentation/`.
 - `src/shared/api/` imports `src/shared/router/` or `vue-router` — the
   transport is constructed with an injected `onUnauthorized` callback
-  precisely so it never needs the router; `src/main.ts` is what decides what
-  "unauthorized" means (see `configureApiSession` there).
+  precisely so it never needs the router; `createUnauthorizedHandler` in
+  `src/shared/router/guard.ts` decides what "unauthorized" means, and
+  `src/main.ts` wires it in through `configureApiSession`.
 - there is a circular dependency anywhere in `src/`.
 
 Type-only imports (`import type`) are part of the graph
