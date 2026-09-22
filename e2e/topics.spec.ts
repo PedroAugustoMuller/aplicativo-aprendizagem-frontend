@@ -2,10 +2,11 @@
 // default storageState in playwright.config.ts). None of them sign in - see
 // the login budget comment at the top of e2e/auth.spec.ts.
 import { expect, test } from '@playwright/test'
+import { CHEMISTRY_ID } from './support/api.ts'
 
 test.describe('topics', () => {
   test('the seeded chemistry syllabus is listed in order', async ({ page }) => {
-    await page.goto('/topics')
+    await page.goto(`/subjects/${CHEMISTRY_ID}/topics`)
 
     await expect(page.getByTestId('topics-list')).toBeVisible()
 
@@ -15,9 +16,9 @@ test.describe('topics', () => {
   })
 
   test('a failing request shows a translated error and retry recovers', async ({ page }) => {
-    await page.route('**/api/v1/topics', (route) => route.abort('failed'))
+    await page.route('**/api/v1/subjects/*/topics', (route) => route.abort('failed'))
 
-    await page.goto('/topics')
+    await page.goto(`/subjects/${CHEMISTRY_ID}/topics`)
 
     const error = page.getByTestId('topics-error')
     await expect(error).toBeVisible()
@@ -25,7 +26,7 @@ test.describe('topics', () => {
     await expect(error).not.toContainText('api.network_unavailable')
 
     // Network back: retry must actually reload, not just be visible.
-    await page.unroute('**/api/v1/topics')
+    await page.unroute('**/api/v1/subjects/*/topics')
     await page.getByTestId('topics-retry').click()
 
     await expect(page.getByTestId('topics-list')).toBeVisible()
@@ -33,8 +34,8 @@ test.describe('topics', () => {
   })
 
   test('the theme toggle switches the applied theme and survives a reload', async ({ page }) => {
-    await page.goto('/topics')
-    await expect(page.getByTestId('topics-list')).toBeVisible()
+    await page.goto('/classrooms')
+    await expect(page.getByTestId('classrooms-list')).toBeVisible()
 
     // Icons are inline SVG paths (mdi-svg + @mdi/js). A blank icon - no set
     // configured, or a font class with no font shipped - has no <path d>.
@@ -52,12 +53,12 @@ test.describe('topics', () => {
 
     await page.reload()
 
-    await expect(page.getByTestId('topics-list')).toBeVisible()
+    await expect(page.getByTestId('classrooms-list')).toBeVisible()
     await expect(app).toHaveClass(new RegExp(`\\bv-theme--${toggled}\\b`))
   })
 
   test('navigation layout matches the viewport', async ({ page }, testInfo) => {
-    await page.goto('/topics')
+    await page.goto(`/subjects/${CHEMISTRY_ID}/topics`)
     await expect(page.getByTestId('topics-list')).toBeVisible()
 
     if (testInfo.project.name === 'desktop') {

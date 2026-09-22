@@ -9,12 +9,12 @@ export const useTopicStore = defineStore('topics', () => {
   const loading = ref(false)
   const error = ref<ApiError | null>(null)
 
-  async function load(): Promise<void> {
+  async function load(subjectId: string): Promise<void> {
     loading.value = true
     error.value = null
 
     try {
-      topics.value = await topicRepository.list()
+      topics.value = await topicRepository.listBySubject(subjectId)
     } catch (failure: unknown) {
       error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
       topics.value = []
@@ -23,5 +23,13 @@ export const useTopicStore = defineStore('topics', () => {
     }
   }
 
-  return { topics, loading, error, load }
+  // A second user signing in on the same shared phone must not see the first
+  // user's topics. Wired into the shared reset-all-stores helper.
+  function reset(): void {
+    topics.value = []
+    loading.value = false
+    error.value = null
+  }
+
+  return { topics, loading, error, load, reset }
 })

@@ -9,14 +9,17 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
-    storageState: 'e2e/.auth/teacher.json',
+    storageState: 'e2e/.auth/admin.json',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run build && npm run preview',
+    // build:e2e (see vite.config.ts) leaves the PWA service worker out of this
+    // build: a real one would call skipWaiting()+clientsClaim() on its first
+    // install and could claim a page mid-test.
+    command: 'npm run build:e2e && npm run preview',
     url: 'http://localhost:5173',
     reuseExistingServer: false,
     timeout: 180_000,

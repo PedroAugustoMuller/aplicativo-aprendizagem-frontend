@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useDisplay } from 'vuetify'
-import { mdiFlaskOutline, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
+import { mdiAccountCircle, mdiLockReset, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppTheme } from '@/shared/theme/useAppTheme'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
+import { navigationFor } from '@/shared/ui/navigation'
+import { resetSharedStores } from '@/shared/ui/resetStores'
 
 const { mobile } = useDisplay()
 const { t } = useI18n()
@@ -13,12 +15,15 @@ const router = useRouter()
 const session = useSessionStore()
 const { isDark, setMode } = useAppTheme()
 
-const items = computed(() => [{ title: t('nav.topics'), icon: mdiFlaskOutline, to: '/topics' }])
+const items = computed(() => navigationFor(session.role))
 
 const toggleTheme = () => setMode(isDark.value ? 'light' : 'dark')
 
 async function signOut(): Promise<void> {
   await session.logout()
+  // A second user signing in on the same shared phone must not see the
+  // previous user's cached lists.
+  resetSharedStores()
   await router.push('/login')
 }
 </script>
@@ -37,20 +42,36 @@ async function signOut(): Promise<void> {
         data-testid="theme-toggle"
         @click="toggleTheme"
       />
-      <v-btn
-        v-if="session.hasSession"
-        :icon="mdiLogout"
-        :aria-label="t('nav.signOut')"
-        data-testid="sign-out"
-        @click="signOut"
-      />
+      <v-menu v-if="session.hasSession">
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            :icon="mdiAccountCircle"
+            :aria-label="t('nav.account')"
+            data-testid="account-menu"
+          />
+        </template>
+        <v-list>
+          <v-list-item
+            :title="t('nav.changePassword')"
+            :prepend-icon="mdiLockReset"
+            to="/change-password"
+            data-testid="menu-change-password"
+          />
+          <v-list-item
+            :title="t('nav.signOut')"
+            :prepend-icon="mdiLogout"
+            data-testid="sign-out"
+            @click="signOut"
+          />
+        </v-list>
+      </v-menu>
     </v-app-bar>
 
-    <!-- Desktop: a persistent rail. Phones: nothing here; navigation sits at the bottom. -->
+    <!-- Desktop: a persistent, labelled drawer. Phones: nothing here; navigation sits at the bottom. -->
     <v-navigation-drawer
-      v-if="!mobile && session.hasSession"
+      v-if="!mobile && session.hasSession && !session.mustChangePassword"
       permanent
-      rail
     >
       <v-list nav>
         <v-list-item
@@ -58,6 +79,8 @@ async function signOut(): Promise<void> {
           :key="item.to"
           :to="item.to"
           :prepend-icon="item.icon"
+          :title="t(item.titleKey)"
+          :data-testid="item.testId"
         />
       </v-list>
     </v-navigation-drawer>
@@ -72,17 +95,35 @@ async function signOut(): Promise<void> {
     </v-main>
 
     <v-bottom-navigation
-      v-if="mobile && session.hasSession"
+      v-if="items.length > 0 && mobile && session.hasSession && !session.mustChangePassword"
       grow
     >
       <v-btn
         v-for="item in items"
         :key="item.to"
         :to="item.to"
+        :data-testid="item.testId"
       >
         <v-icon :icon="item.icon" />
-        <span>{{ item.title }}</span>
+        <span>{{ t(item.titleKey) }}</span>
       </v-btn>
     </v-bottom-navigation>
   </v-app>
 </template>
+
+<style>
+/* Not scoped: the chrome this hides (app bar, drawer, bottom nav) is here in
+   AppLayout, but the print trigger lives on the page inside <slot /> (see
+   CredentialSlipsPage.vue), so a scoped style could not reach it either way. */
+@media print {
+  .v-app-bar,
+  .v-navigation-drawer,
+  .v-bottom-navigation {
+    display: none !important;
+  }
+
+  .v-main {
+    padding: 0 !important;
+  }
+}
+</style>

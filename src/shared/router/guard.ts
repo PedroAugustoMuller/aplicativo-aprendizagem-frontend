@@ -1,9 +1,11 @@
 import type { RouteLocationNormalizedLoaded, RouteLocationRaw, Router } from 'vue-router'
-import type { RestoreOutcome } from '@/modules/identity/application/sessionStore'
+import type { RestoreOutcome, Role } from '@/modules/identity/application/sessionStore'
 
 export interface RouteFlags {
   requiresAuth: boolean
   guestOnly: boolean
+  roles: readonly Role[] | null
+  allowsPendingPassword: boolean
 }
 
 export interface SessionState {
@@ -11,6 +13,9 @@ export interface SessionState {
   hasSession: boolean
   /** restore() just discarded a token the server rejected with a 401. */
   expired: boolean
+  /** null while the profile is unknown (e.g. an offline reload). */
+  role: Role | null
+  mustChangePassword: boolean
 }
 
 /** The slice of the session store the guard and the 401 handler need. */
@@ -19,9 +24,19 @@ export interface GuardedSession {
   /** Only compared with null: the guard needs to know whether restore() is due. */
   readonly user: unknown
   readonly hasSession: boolean
+  readonly role: Role | null
+  readonly mustChangePassword: boolean
   restore(): Promise<RestoreOutcome>
   clear(): void
 }
+
+const HOMES: Record<Role, string> = {
+  admin: '/classrooms',
+  teacher: '/classrooms',
+  student: '/my-classrooms',
+}
+
+export const homeFor = (role: Role): string => HOMES[role]
 
 /** Pure decision function, unit-testable without a router instance. */
 export function resolveNavigation(
@@ -37,7 +52,19 @@ export function resolveNavigation(
   }
 
   if (flags.guestOnly && session.hasSession) {
-    return { path: '/topics' }
+    return { path: session.role === null ? '/' : homeFor(session.role) }
+  }
+
+  // Mirrors the backend lock: while the password is temporary, every other
+  // request would answer 403 identity.password_change_required anyway.
+  if (session.hasSession && session.mustChangePassword && !flags.allowsPendingPassword) {
+    return { path: '/change-password' }
+  }
+
+  // An unknown profile (offline reload) is "not yet known", never "forbidden":
+  // let the page load and show its own retry.
+  if (flags.roles !== null && session.role !== null && !flags.roles.includes(session.role)) {
+    return { path: homeFor(session.role) }
   }
 
   return true
@@ -80,8 +107,13 @@ export function installSessionGuard(router: Router, getSession: () => GuardedSes
     }
 
     return resolveNavigation(
-      { requiresAuth: to.meta.requiresAuth === true, guestOnly: to.meta.guestOnly === true },
-      { hasSession: session.hasSession, expired },
+      {
+        requiresAuth: to.meta.requiresAuth === true,
+        guestOnly: to.meta.guestOnly === true,
+        roles: to.meta.roles ?? null,
+        allowsPendingPassword: to.meta.allowsPendingPassword === true,
+      },
+      { hasSession: session.hasSession, expired, role: session.role, mustChangePassword: session.mustChangePassword },
       to.fullPath,
     )
   })

@@ -54,6 +54,13 @@
   module's `application/` and `presentation/` — never its `domain/` or
   `infrastructure/` (their specs included: mock a repository by path with
   `vi.mock`, don't import it).
+- Identity pages that need subject data use `src/shared/ui/SubjectSelect.vue`
+  (a dropdown backed by `subjectStore`) and `SubjectLabel.vue` (a subject
+  name lookup) instead of reaching into `content` themselves —
+  `ClassroomFormDialog.vue`, `ClassroomsPage.vue`, `ClassroomDetailPage.vue`,
+  and `MyClassroomsPage.vue` all use one or the other. `shared/ui` is a
+  composition root and may read the `content` module's store; a module must
+  not reach into another module's internals.
 - A module never imports another module's internals — only `src/shared/`.
 
 ## Errors and i18n
@@ -104,14 +111,36 @@
   `restore()` rejected the token. Two competing pushes there would drop the
   notice. `src/shared/router/guard.spec.ts` covers each branch against a real
   memory-history router.
+- The session also carries `role` and `mustChangePassword`
+  (`src/modules/identity/application/sessionStore.ts`), and the guard
+  (`src/shared/router/guard.ts`) mirrors the backend with them: a pending
+  password change redirects every route without `meta.allowsPendingPassword`
+  to `/change-password`; a wrong role redirects to `homeFor(role)`, never to
+  an error page; an unknown role (offline reload, profile not restored yet)
+  is let through so the page shows its own retry instead of being treated as
+  forbidden.
+
+## Routing
+
+- Every new route declares `meta.roles` unless every signed-in role may see
+  it — see `src/shared/router/index.ts`: `/subjects` and `/teachers` are
+  `['admin']`, `/classrooms*` are `['admin', 'teacher']`, `/my-classrooms` is
+  `['student']`, and `/subjects/:subjectId/topics` has no `roles` because all
+  three may open it.
 
 ## Writes and retries
 
 - Any write endpoint the client may resend must accept a client-generated
-  identifier (`attempt_id`) and return the **original** result on replay
-  instead of duplicating the write. No retryable write exists in this
-  codebase yet, but the offline queue that will live in
-  `infrastructure/persistence/` depends on every future one following this
+  identifier and return the **original** result on replay instead of
+  duplicating the write. Every create uses `newId()` (`src/shared/id/newId.ts`),
+  generated when the form or preview **opens** and reused on resubmit — see
+  `SubjectFormDialog.vue`, `TeacherFormDialog.vue`, and
+  `ClassroomFormDialog.vue`. `PasteStudentsDialog.vue` shows the pattern for a
+  batch: each parsed name gets its id the first time it appears while the
+  dialog is open, editing the textarea keeps ids for names that remain, a
+  failed submit resends the identical rows, and the map is only cleared the
+  next time the dialog opens. The offline queue that will live in
+  `infrastructure/persistence/` depends on every future write following this
   convention from the start — a student's phone will resend a quiz-attempt
   submission the moment the network comes back (RNF03/RNF05), and a
   duplicate submission is a wrong score, not a cosmetic bug.
@@ -142,10 +171,13 @@
   both the `desktop` and `mobile` Playwright projects — never against a
   concurrently running dev server (stop it first with `docker compose down`; the suite builds and
   serves the production bundle itself on port 5173).
-- The backend throttles login to 5/minute per email+IP; the suite already
-  spends 4 of those per run. Read the login-budget comment at the top of
-  `e2e/auth.spec.ts` before adding any test that submits the login form, and
-  never give a login-issuing test retries.
+- The backend throttles login to 5/minute per login+IP; the suite already
+  spends 4 of the shared admin's per run. Read the login-budget comment at
+  the top of `e2e/auth.spec.ts` before adding any test that submits the login
+  form: a new test must not log in as the shared admin — create a user
+  through the admin API (`e2e/support/api.ts`) and log in as that user
+  instead, since each user has its own bucket. Never give a login-issuing
+  test retries.
 
 ## Language
 
@@ -157,4 +189,5 @@
   - test fixtures and assertions of translated or seeded text (e.g.
     `'E-mail ou senha incorretos.'` in specs, `'Matéria e suas
     Transformações'` in e2e);
-  - seeded chemistry content on the backend side.
+  - seeded content on the backend side, which now spans several subjects
+    (e.g. Química, Biologia), not just chemistry.

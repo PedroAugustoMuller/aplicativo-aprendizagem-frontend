@@ -3,7 +3,9 @@ import { defineStore } from 'pinia'
 import { authRepository } from '@/modules/identity/infrastructure/HttpAuthRepository'
 import { tokenStorage } from '@/modules/identity/infrastructure/persistence/tokenStorage'
 import { ApiError } from '@/shared/api/error'
-import type { AuthenticatedUser, Credentials } from '@/modules/identity/domain/Session'
+import type { AuthenticatedUser, Credentials, PasswordChange, Role } from '@/modules/identity/domain/Session'
+
+export type { Role } from '@/modules/identity/domain/Session'
 
 /**
  * What restore() found out:
@@ -26,13 +28,16 @@ export const useSessionStore = defineStore('session', () => {
   const hasSession = computed(() => token.value !== null)
   // isAuthenticated: the server has confirmed the token and the user is known.
   const isAuthenticated = computed(() => token.value !== null && user.value !== null)
+  const role = computed<Role | null>(() => user.value?.role ?? null)
+  const mustChangePassword = computed(() => user.value?.mustChangePassword === true)
 
   async function login(credentials: Credentials): Promise<void> {
     const session = await authRepository.login(credentials)
+    const { token: issued, ...profile } = session
 
-    token.value = session.token
-    user.value = { userId: session.userId, name: session.name, email: session.email }
-    tokenStorage.write(session.token)
+    token.value = issued
+    user.value = profile
+    tokenStorage.write(issued)
   }
 
   function clear(): void {
@@ -48,6 +53,13 @@ export const useSessionStore = defineStore('session', () => {
       // Signing out locally must succeed even with no network.
     } finally {
       clear()
+    }
+  }
+
+  async function changePassword(change: PasswordChange): Promise<void> {
+    await authRepository.changePassword(change)
+    if (user.value !== null) {
+      user.value = { ...user.value, mustChangePassword: false }
     }
   }
 
@@ -88,5 +100,18 @@ export const useSessionStore = defineStore('session', () => {
     return inFlight
   }
 
-  return { token, user, restoring, hasSession, isAuthenticated, login, logout, clear, restore }
+  return {
+    token,
+    user,
+    restoring,
+    hasSession,
+    isAuthenticated,
+    role,
+    mustChangePassword,
+    login,
+    logout,
+    changePassword,
+    clear,
+    restore,
+  }
 })

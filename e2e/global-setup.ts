@@ -4,12 +4,12 @@ import { fileURLToPath } from 'node:url'
 import { request } from '@playwright/test'
 
 // Where the shared session is written. Every test in the suite defaults to
-// this storageState (see playwright.config.ts); the two tests that must run
+// this storageState (see playwright.config.ts); the tests that must run
 // without a session override it explicitly.
-const AUTH_FILE = fileURLToPath(new URL('./.auth/teacher.json', import.meta.url))
+const AUTH_FILE = fileURLToPath(new URL('./.auth/admin.json', import.meta.url))
 const LOGIN_URL = 'http://localhost:8080/api/v1/auth/login'
 const APP_ORIGIN = 'http://localhost:5173'
-const TEACHER = { email: 'ana@escola.br', password: 'password' }
+const ADMIN = { login: 'ana@escola.br', password: 'password' }
 const TOKEN_STORAGE_KEY = 'quimica.auth.token'
 
 /**
@@ -40,7 +40,7 @@ function readToken(body: unknown): string {
 /**
  * Logs in exactly once for the whole run and writes a storageState file that
  * every project (desktop, mobile) reuses as its default session. This exists
- * because the backend throttles login to 5 attempts/minute per email+IP: the
+ * because the backend throttles login to 5 attempts/minute per login+IP: the
  * brief signs in through the form in nearly every test, which would blow that
  * budget in seconds once desktop and mobile run in parallel. See the comment
  * at the top of e2e/auth.spec.ts for the resulting login budget.
@@ -50,7 +50,7 @@ export default async function globalSetup(): Promise<void> {
 
   try {
     const response = await context.post(LOGIN_URL, {
-      data: TEACHER,
+      data: ADMIN,
       headers: { Accept: 'application/json' },
     })
 

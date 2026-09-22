@@ -4,9 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, START_LOCATION, type Router } from 'vue-router'
 import {
   createUnauthorizedHandler,
+  homeFor,
   installSessionGuard,
   resolveNavigation,
   unauthorizedRedirect,
+  type RouteFlags,
+  type SessionState,
 } from '@/shared/router/guard'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { ApiError } from '@/shared/api/error'
@@ -27,33 +30,80 @@ const tokenStorage = {
   clear: () => localStorage.removeItem(TOKEN_KEY),
 }
 
-const ANA = { userId: 'u-1', name: 'Ana', email: 'ana@escola.br' }
+const ANA = { userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false }
 
 describe('resolveNavigation', () => {
-  const protectedRoute = { requiresAuth: true, guestOnly: false }
-  const guestRoute = { requiresAuth: false, guestOnly: true }
+  const flags = (overrides: Partial<RouteFlags> = {}): RouteFlags => ({
+    requiresAuth: true,
+    guestOnly: false,
+    roles: null,
+    allowsPendingPassword: false,
+    ...overrides,
+  })
+  const session = (overrides: Partial<SessionState> = {}): SessionState => ({
+    hasSession: true,
+    expired: false,
+    role: 'teacher',
+    mustChangePassword: false,
+    ...overrides,
+  })
 
   it('sends a visitor without a session from a protected route to login', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: false }, '/topics'))
-      .toEqual({ path: '/login', query: { redirect: '/topics' } })
+    expect(resolveNavigation(flags(), session({ hasSession: false, role: null }), '/classrooms'))
+      .toEqual({ path: '/login', query: { redirect: '/classrooms' } })
   })
 
   it('tells the login page why when the session was just rejected', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: true }, '/topics'))
-      .toEqual({ path: '/login', query: { redirect: '/topics', reason: 'expired' } })
+    expect(resolveNavigation(flags(), session({ hasSession: false, role: null, expired: true }), '/classrooms'))
+      .toEqual({ path: '/login', query: { redirect: '/classrooms', reason: 'expired' } })
   })
 
-  it('lets a session through a protected route', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: true, expired: false }, '/topics')).toBe(true)
+  it('sends a known session away from the login page to its home', () => {
+    expect(resolveNavigation(flags({ requiresAuth: false, guestOnly: true }), session({ role: 'student' }), '/login'))
+      .toEqual({ path: '/my-classrooms' })
   })
 
-  it('sends a session away from the login page', () => {
-    expect(resolveNavigation(guestRoute, { hasSession: true, expired: false }, '/login'))
-      .toEqual({ path: '/topics' })
+  it('sends a session with an unknown profile away from login to the neutral home', () => {
+    expect(resolveNavigation(flags({ requiresAuth: false, guestOnly: true }), session({ role: null }), '/login'))
+      .toEqual({ path: '/' })
   })
 
-  it('lets a visitor without a session reach the login page', () => {
-    expect(resolveNavigation(guestRoute, { hasSession: false, expired: false }, '/login')).toBe(true)
+  it('forces a pending password change before anything else', () => {
+    expect(resolveNavigation(flags({ roles: ['admin', 'teacher'] }), session({ mustChangePassword: true }), '/classrooms'))
+      .toEqual({ path: '/change-password' })
+  })
+
+  it('lets a pending password change reach the change-password page', () => {
+    expect(resolveNavigation(flags({ allowsPendingPassword: true }), session({ mustChangePassword: true }), '/change-password'))
+      .toBe(true)
+  })
+
+  it('sends a completed password change away from the change-password page only when forced there', () => {
+    // The page is also reachable voluntarily from the account menu.
+    expect(resolveNavigation(flags({ allowsPendingPassword: true }), session(), '/change-password')).toBe(true)
+  })
+
+  it('redirects a wrong role to its own home, not to an error', () => {
+    expect(resolveNavigation(flags({ roles: ['admin'] }), session({ role: 'teacher' }), '/teachers'))
+      .toEqual({ path: '/classrooms' })
+    expect(resolveNavigation(flags({ roles: ['admin', 'teacher'] }), session({ role: 'student' }), '/classrooms'))
+      .toEqual({ path: '/my-classrooms' })
+  })
+
+  it('lets an unknown profile through a role-restricted route so the page can show its own retry', () => {
+    expect(resolveNavigation(flags({ roles: ['admin'] }), session({ role: null }), '/teachers')).toBe(true)
+  })
+
+  it('lets the right role through', () => {
+    expect(resolveNavigation(flags({ roles: ['admin'] }), session({ role: 'admin' }), '/teachers')).toBe(true)
+  })
+})
+
+describe('homeFor', () => {
+  it('maps each role to its landing page', () => {
+    expect(homeFor('admin')).toBe('/classrooms')
+    expect(homeFor('teacher')).toBe('/classrooms')
+    expect(homeFor('student')).toBe('/my-classrooms')
   })
 })
 
@@ -87,8 +137,11 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
+        { path: '/', component: Stub, meta: { requiresAuth: true } },
         { path: '/login', component: Stub, meta: { guestOnly: true } },
-        { path: '/topics', component: Stub, meta: { requiresAuth: true } },
+        { path: '/change-password', component: Stub, meta: { requiresAuth: true, allowsPendingPassword: true } },
+        { path: '/classrooms', component: Stub, meta: { requiresAuth: true, roles: ['admin', 'teacher'] } },
+        { path: '/my-classrooms', component: Stub, meta: { requiresAuth: true, roles: ['student'] } },
       ],
     })
     installSessionGuard(router, () => useSessionStore())
@@ -107,10 +160,10 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
     currentUser.mockImplementation(rejectLikeTheTransport)
     const push = vi.spyOn(router, 'push')
 
-    await router.push('/topics')
+    await router.push('/classrooms')
 
     expect(router.currentRoute.value.path).toBe('/login')
-    expect(router.currentRoute.value.query).toEqual({ redirect: '/topics', reason: 'expired' })
+    expect(router.currentRoute.value.query).toEqual({ redirect: '/classrooms', reason: 'expired' })
     expect(useSessionStore().hasSession).toBe(false)
     expect(tokenStorage.read()).toBeNull()
     // Only the test's own push: onUnauthorized left the first-load redirect to the guard.
@@ -121,9 +174,9 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
     tokenStorage.write('persisted')
     currentUser.mockRejectedValue(new ApiError('api.network_unavailable'))
 
-    await router.push('/topics')
+    await router.push('/classrooms')
 
-    expect(router.currentRoute.value.path).toBe('/topics')
+    expect(router.currentRoute.value.path).toBe('/classrooms')
     expect(useSessionStore().hasSession).toBe(true)
     expect(tokenStorage.read()).toBe('persisted')
   })
@@ -131,10 +184,10 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
   it('sends a signed-in user to login with the expiry notice on a mid-session 401', async () => {
     tokenStorage.write('valid')
     currentUser.mockResolvedValue(ANA)
-    await router.push('/topics')
-    expect(router.currentRoute.value.path).toBe('/topics')
+    await router.push('/classrooms')
+    expect(router.currentRoute.value.path).toBe('/classrooms')
 
-    // e.g. GET /topics answered 401 because the token was revoked meanwhile.
+    // e.g. GET /classrooms answered 401 because the token was revoked meanwhile.
     onUnauthorized()
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/login'))
 
@@ -145,8 +198,8 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
   it('ends on the expiry notice when a session that started offline is rejected on a later navigation', async () => {
     tokenStorage.write('revoked')
     currentUser.mockRejectedValueOnce(new ApiError('api.network_unavailable'))
-    await router.push('/topics')
-    expect(router.currentRoute.value.path).toBe('/topics')
+    await router.push('/classrooms')
+    expect(router.currentRoute.value.path).toBe('/classrooms')
 
     // Back online: the guard retries restore() on the next navigation and the
     // server rejects the token. Here onUnauthorized (current route requires auth)
@@ -160,10 +213,28 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
   })
 
   it('sends a visitor without a token to login without the expiry notice', async () => {
-    await router.push('/topics')
+    await router.push('/classrooms')
 
     expect(router.currentRoute.value.path).toBe('/login')
-    expect(router.currentRoute.value.query).toEqual({ redirect: '/topics' })
+    expect(router.currentRoute.value.query).toEqual({ redirect: '/classrooms' })
     expect(currentUser).not.toHaveBeenCalled()
+  })
+
+  it('lands a restored student who opens a staff URL on their own home', async () => {
+    tokenStorage.write('valid')
+    currentUser.mockResolvedValue({ ...ANA, role: 'student' })
+
+    await router.push('/classrooms')
+
+    expect(router.currentRoute.value.path).toBe('/my-classrooms')
+  })
+
+  it('lands a restored user with a pending password on the change page, whatever they opened', async () => {
+    tokenStorage.write('valid')
+    currentUser.mockResolvedValue({ ...ANA, mustChangePassword: true })
+
+    await router.push('/classrooms')
+
+    expect(router.currentRoute.value.path).toBe('/change-password')
   })
 })

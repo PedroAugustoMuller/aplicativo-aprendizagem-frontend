@@ -1,14 +1,13 @@
-/** Mirrors the backend's POST /auth/login `data` object. Network shape, not domain shape. */
-export interface LoginResponse {
-  id: string
-  name: string
-  email: string
-  token: string
-}
-
-/** Mirrors GET /auth/me `data`. */
+/** Mirrors GET /auth/me `data`. `role` is a string on the wire; the repository narrows it. */
 export interface CurrentUserResponse {
   id: string
   name: string
-  email: string
+  login: string
+  role: string
+  must_change_password: boolean
+}
+
+/** Mirrors POST /auth/login `data`. */
+export interface LoginResponse extends CurrentUserResponse {
+  token: string
 }

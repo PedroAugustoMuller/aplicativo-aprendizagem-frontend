@@ -40,7 +40,7 @@ test('the app ships an installable manifest', async ({ page, request }) => {
   }
 
   const manifest = readManifest(await (await request.get(href)).json())
-  expect(manifest.name).toBe('Química 9º Ano')
+  expect(manifest.name).toBe('Quiz Escolar')
   expect(manifest.display).toBe('standalone')
   expect(manifest.iconCount).toBeGreaterThanOrEqual(2)
 })

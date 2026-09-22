@@ -1,24 +1,46 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
+import { canRetry as canRetryError } from '@/shared/api/canRetry'
+import SubjectLabel from '@/shared/ui/SubjectLabel.vue'
 import TopicCard from '@/modules/content/presentation/TopicCard.vue'
 
 const { t, te } = useI18n()
+const route = useRoute()
 const store = useTopicStore()
+
+const subjectId = computed(() => (typeof route.params.subjectId === 'string' ? route.params.subjectId : null))
 
 const errorMessage = computed(() =>
   store.error === null ? null : apiErrorMessage(store.error, t, te),
 )
 
-onMounted(() => void store.load())
+const canRetry = computed(() => canRetryError(store.error))
+
+function load(): void {
+  if (subjectId.value !== null) {
+    void store.load(subjectId.value)
+  }
+}
+
+onMounted(load)
+watch(() => route.params.subjectId, load)
 </script>
 
 <template>
   <div>
     <h1 class="text-h5 mb-4">
-      {{ t('topics.title') }}
+      <SubjectLabel
+        v-if="subjectId"
+        :subject-id="subjectId"
+        :fallback="t('topics.title')"
+      />
+      <template v-else>
+        {{ t('topics.title') }}
+      </template>
     </h1>
 
     <v-progress-linear
@@ -35,11 +57,14 @@ onMounted(() => void store.load())
       class="mb-4"
     >
       {{ errorMessage }}
-      <template #append>
+      <template
+        v-if="canRetry"
+        #append
+      >
         <v-btn
           variant="text"
           data-testid="topics-retry"
-          @click="store.load()"
+          @click="load"
         >
           {{ t('common.retry') }}
         </v-btn>

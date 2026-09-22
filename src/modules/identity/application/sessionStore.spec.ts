@@ -6,7 +6,7 @@ import { tokenStorage } from '@/modules/identity/infrastructure/persistence/toke
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
-  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn() },
+  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
 }))
 
 describe('sessionStore', () => {
@@ -22,11 +22,11 @@ describe('sessionStore', () => {
 
   it('stores the session and persists the token on login', async () => {
     vi.mocked(authRepository.login).mockResolvedValue({
-      userId: 'u-1', name: 'Ana', email: 'ana@escola.br', token: 'tok',
+      userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false, token: 'tok',
     })
 
     const store = useSessionStore()
-    await store.login({ email: 'ana@escola.br', password: 'password' })
+    await store.login({ login: 'ana@escola.br', password: 'password' })
 
     expect(store.isAuthenticated).toBe(true)
     expect(store.user?.name).toBe('Ana')
@@ -38,7 +38,7 @@ describe('sessionStore', () => {
 
     const store = useSessionStore()
 
-    await expect(store.login({ email: 'ana@escola.br', password: 'wrong' })).rejects.toBeInstanceOf(ApiError)
+    await expect(store.login({ login: 'ana@escola.br', password: 'wrong' })).rejects.toBeInstanceOf(ApiError)
     expect(store.isAuthenticated).toBe(false)
     expect(store.token).toBeNull()
     expect(store.user).toBeNull()
@@ -47,12 +47,12 @@ describe('sessionStore', () => {
 
   it('clears everything on logout', async () => {
     vi.mocked(authRepository.login).mockResolvedValue({
-      userId: 'u-1', name: 'Ana', email: 'ana@escola.br', token: 'tok',
+      userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false, token: 'tok',
     })
     vi.mocked(authRepository.logout).mockResolvedValue(undefined)
 
     const store = useSessionStore()
-    await store.login({ email: 'ana@escola.br', password: 'password' })
+    await store.login({ login: 'ana@escola.br', password: 'password' })
     await store.logout()
 
     expect(store.isAuthenticated).toBe(false)
@@ -61,12 +61,12 @@ describe('sessionStore', () => {
 
   it('clears local state even when the logout request fails', async () => {
     vi.mocked(authRepository.login).mockResolvedValue({
-      userId: 'u-1', name: 'Ana', email: 'ana@escola.br', token: 'tok',
+      userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false, token: 'tok',
     })
     vi.mocked(authRepository.logout).mockRejectedValue(new ApiError('api.network_unavailable'))
 
     const store = useSessionStore()
-    await store.login({ email: 'ana@escola.br', password: 'password' })
+    await store.login({ login: 'ana@escola.br', password: 'password' })
     await store.logout()
 
     expect(store.isAuthenticated).toBe(false)
@@ -76,7 +76,7 @@ describe('sessionStore', () => {
   it('restores a persisted token on boot', async () => {
     tokenStorage.write('persisted')
     vi.mocked(authRepository.currentUser).mockResolvedValue({
-      userId: 'u-9', name: 'Ana', email: 'ana@escola.br',
+      userId: 'u-9', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false,
     })
 
     const store = useSessionStore()
@@ -131,7 +131,7 @@ describe('sessionStore', () => {
   it('reports a successful restore', async () => {
     tokenStorage.write('persisted')
     vi.mocked(authRepository.currentUser).mockResolvedValue({
-      userId: 'u-9', name: 'Ana', email: 'ana@escola.br',
+      userId: 'u-9', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false,
     })
 
     await expect(useSessionStore().restore()).resolves.toBe('restored')
@@ -140,7 +140,7 @@ describe('sessionStore', () => {
   it('coalesces concurrent restore() calls into a single request', async () => {
     tokenStorage.write('persisted')
     vi.mocked(authRepository.currentUser).mockResolvedValue({
-      userId: 'u-9', name: 'Ana', email: 'ana@escola.br',
+      userId: 'u-9', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false,
     })
 
     const store = useSessionStore()
@@ -156,5 +156,44 @@ describe('sessionStore', () => {
 
     expect(outcome).toBe('skipped')
     expect(authRepository.currentUser).not.toHaveBeenCalled()
+  })
+
+  it('exposes the role and the password-change flag of the signed-in user', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue({
+      userId: 'u-2', name: 'Diego', login: 'diego.souza', role: 'student', mustChangePassword: true, token: 'tok',
+    })
+
+    const store = useSessionStore()
+    await store.login({ login: 'diego.souza', password: 'Temp2345' })
+
+    expect(store.role).toBe('student')
+    expect(store.mustChangePassword).toBe(true)
+  })
+
+  it('clears the password-change flag after a successful change', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue({
+      userId: 'u-2', name: 'Diego', login: 'diego.souza', role: 'student', mustChangePassword: true, token: 'tok',
+    })
+    vi.mocked(authRepository.changePassword).mockResolvedValue()
+
+    const store = useSessionStore()
+    await store.login({ login: 'diego.souza', password: 'Temp2345' })
+    await store.changePassword({ currentPassword: 'Temp2345', newPassword: 'minha-senha' })
+
+    expect(store.mustChangePassword).toBe(false)
+    expect(store.token).toBe('tok')
+  })
+
+  it('keeps the flag when the change is rejected', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue({
+      userId: 'u-2', name: 'Diego', login: 'diego.souza', role: 'student', mustChangePassword: true, token: 'tok',
+    })
+    vi.mocked(authRepository.changePassword).mockRejectedValue(new ApiError('identity.current_password_invalid', {}, 422))
+
+    const store = useSessionStore()
+    await store.login({ login: 'diego.souza', password: 'Temp2345' })
+
+    await expect(store.changePassword({ currentPassword: 'x', newPassword: 'minha-senha' })).rejects.toBeInstanceOf(ApiError)
+    expect(store.mustChangePassword).toBe(true)
   })
 })

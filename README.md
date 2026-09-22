@@ -1,9 +1,9 @@
-# Química 9º Ano — frontend
+# Quiz Escolar — frontend
 
-The Vue 3 PWA for a gamified chemistry quiz for 9th-grade students at
-E.M.E.F. Dom Pedro II (Venâncio Aires/RS). Teachers register content and
-questions; students answer quizzes with randomised questions, get immediate
-feedback, and climb a per-topic ranking.
+The Vue 3 PWA for a gamified quiz covering several subjects, for 9th-grade
+students at E.M.E.F. Dom Pedro II (Venâncio Aires/RS). Teachers register
+content and questions; students answer quizzes with randomised questions,
+get immediate feedback, and climb a per-topic ranking.
 
 The API lives in a separate repository, `backend/` (a Laravel app), served
 from a different domain. This repository only ever talks to it over HTTPS
@@ -67,10 +67,18 @@ docker compose up
 ```
 
 The first `up` installs dependencies before starting Vite; later ones go
-straight to the dev server. Open `http://localhost:5173` and sign in with the
-seeded teacher, `ana@escola.br` / `password`. Stop it with Ctrl+C, or use
-`docker compose up -d` to run it in the background and `docker compose down`
-to stop it.
+straight to the dev server. Open `http://localhost:5173` and sign in with one
+of the backend's seeded development accounts:
+
+| Login | Password | Role | Notes |
+| --- | --- | --- | --- |
+| `ana@escola.br` | `password` | admin | manages subjects, teachers, classrooms |
+| `bruno@escola.br` | `password` | teacher | teaches classroom "Química 1" |
+| `carla.dias` | `password` | student | enrolled in "Química 1" |
+| `diego.souza` | `Temp2345` | student | enrolled in "Química 1"; must change password on first sign-in |
+
+Stop the dev server with Ctrl+C, or use `docker compose up -d` to run it in
+the background and `docker compose down` to stop it.
 
 If you want to run the quality gate or tests before ever running `up`, install
 first with `docker compose run --rm node npm install`.
@@ -83,6 +91,7 @@ Run any of these as `docker compose run --rm node npm run <script>`:
 | --- | --- |
 | `dev` | Starts the Vite dev server on port 5173 — normally via `docker compose up` instead. |
 | `build` | `vue-tsc -b && vite build`; emits `dist/`. |
+| `build:e2e` | Same as `build`, but in the `e2e` Vite mode, which keeps the manifest but skips registering the service worker (see below) — used by the e2e suite's `webServer`, never by hand. |
 | `preview` | Serves the built `dist/` on port 5173 (`--strictPort`). |
 | `test:unit` | Runs the Vitest suite once. |
 | `test:watch` | Runs Vitest in watch mode. |
@@ -109,11 +118,19 @@ projects. A few things that make this suite different from a normal `npm run
 test:e2e`:
 
 - **Stop the dev server first** (`docker compose down`). The suite's `webServer` runs
-  `npm run build && npm run preview` on port 5173 with
+  `npm run build:e2e && npm run preview` on port 5173 with
   `reuseExistingServer: false`, and fails loudly if that port is already
   taken. Port 5173 is also the only origin the backend's CORS config allows,
   which is why both the dev server and the production preview use it instead
   of Vite's default 4173.
+- **No PWA service worker in this build.** `build:e2e` builds in Vite's `e2e`
+  mode, which `vite.config.ts` uses to set `injectRegister: false`: the
+  manifest (`e2e/pwa.spec.ts` checks the app stays installable) is still
+  generated, but the page never calls `navigator.serviceWorker.register()`,
+  so no service worker ever installs. A real one's first install calls
+  `skipWaiting()` and `clientsClaim()`, which can claim the page Playwright is
+  mid-interaction with and force a reload — the suite gets no
+  offline-behaviour coverage from it today anyway.
 - **Login budget.** The backend throttles `POST /auth/login` to 5 attempts
   per minute per email+IP. This suite spends 4 per run: one API login in
   `e2e/global-setup.ts` (shared as `storageState` by every test), a
@@ -144,11 +161,37 @@ src/
     router/            the Vue Router instance; guard.ts holds the session guard
                        and the onUnauthorized handler
     theme/             dark-mode composable
-    ui/                the app shell (AppLayout)
+    ui/                the app shell (AppLayout, navigation.ts), plus the two
+                       cross-module composition-root helpers - SubjectSelect
+                       and SubjectLabel (an identity page's subject picker and
+                       name lookup, backed by content's subjectStore),
+                       HomeRedirectPage (role-based landing), and
+                       resetStores.ts (clears every module's cache on sign-out)
 ```
 
-The current modules are `identity` (login, session) and `content` (topics).
-`Quiz` and `Scoring` will follow the same shape when they land.
+The current modules are `identity` (login, session, accounts, teachers,
+classrooms, rosters) and `content` (subjects, topics). `Quiz` and `Scoring`
+will follow the same shape when they land.
+
+### Routes and roles
+
+Every route under `src/shared/router/index.ts` declares `meta.roles` unless
+every signed-in role may see it; a role not in the list is redirected to its
+own home instead of an error page (`homeFor` in `src/shared/router/guard.ts`:
+`/classrooms` for admin and teacher, `/my-classrooms` for student).
+
+| Route | Roles | Notes |
+| --- | --- | --- |
+| `/` | any signed-in | redirects to `homeFor(role)` |
+| `/login` | guest only | |
+| `/change-password` | any signed-in | the only route a pending password change may open |
+| `/subjects` | admin | |
+| `/teachers` | admin | |
+| `/classrooms` | admin, teacher | |
+| `/classrooms/:classroomId` | admin, teacher | |
+| `/classrooms/:classroomId/credentials` | admin, teacher | printable credential slips for a classroom's students |
+| `/my-classrooms` | student | |
+| `/subjects/:subjectId/topics` | any signed-in | no `meta.roles` — every role may open it |
 
 The domain sits behind a repository **interface** (`AuthRepository`,
 `TopicRepository`), and only `infrastructure/` implements it against HTTP
@@ -330,8 +373,9 @@ project automatically, deploys on every push to the main branch (or via
 service worker requires. The only environment variable to configure there is
 `VITE_API_URL`, pointed at the backend's public URL.
 
-The router uses HTML5 history mode, so a deep link or a reload on `/topics`
-asks the CDN for a file that does not exist. `vercel.json` rewrites every
-path that isn't a real file in `dist/` to `/index.html` so the client-side
-router can take over (Vercel serves existing static files before applying
-rewrites). Any other host needs the same SPA fallback.
+The router uses HTML5 history mode, so a deep link or a reload on a route
+like `/my-classrooms` asks the CDN for a file that does not exist.
+`vercel.json` rewrites every path that isn't a real file in `dist/` to
+`/index.html` so the client-side router can take over (Vercel serves
+existing static files before applying rewrites). Any other host needs the
+same SPA fallback.

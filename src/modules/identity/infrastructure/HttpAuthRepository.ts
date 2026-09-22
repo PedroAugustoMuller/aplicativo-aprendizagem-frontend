@@ -1,20 +1,21 @@
 import { identityRequests } from '@/modules/identity/infrastructure/client/requests'
+import { toRole } from '@/modules/identity/infrastructure/accountMapping'
 import type { AuthRepository } from '@/modules/identity/domain/AuthRepository'
-import type { AuthenticatedUser, Credentials, Session } from '@/modules/identity/domain/Session'
+import type { AuthenticatedUser, Credentials, PasswordChange, Session } from '@/modules/identity/domain/Session'
+import type { CurrentUserResponse } from '@/modules/identity/infrastructure/interfaces/LoginResponse'
+
+const toUser = (response: CurrentUserResponse): AuthenticatedUser => ({
+  userId: response.id,
+  name: response.name,
+  login: response.login,
+  role: toRole(response.role),
+  mustChangePassword: response.must_change_password,
+})
 
 export const authRepository: AuthRepository = {
   async login(credentials: Credentials): Promise<Session> {
-    const response = await identityRequests.login({
-      email: credentials.email,
-      password: credentials.password,
-    })
-
-    return {
-      userId: response.id,
-      name: response.name,
-      email: response.email,
-      token: response.token,
-    }
+    const response = await identityRequests.login({ login: credentials.login, password: credentials.password })
+    return { ...toUser(response), token: response.token }
   },
 
   async logout(): Promise<void> {
@@ -22,8 +23,13 @@ export const authRepository: AuthRepository = {
   },
 
   async currentUser(): Promise<AuthenticatedUser> {
-    const response = await identityRequests.currentUser()
+    return toUser(await identityRequests.currentUser())
+  },
 
-    return { userId: response.id, name: response.name, email: response.email }
+  async changePassword(change: PasswordChange): Promise<void> {
+    await identityRequests.changePassword({
+      current_password: change.currentPassword,
+      new_password: change.newPassword,
+    })
   },
 }

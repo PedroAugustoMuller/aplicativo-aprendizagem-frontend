@@ -11,7 +11,7 @@ const router = useRouter()
 const route = useRoute()
 const session = useSessionStore()
 
-const email = ref('')
+const login = ref('')
 const password = ref('')
 const submitting = ref(false)
 // Hold the ApiError, not its translation, so a language change re-renders it.
@@ -23,10 +23,11 @@ async function submit(): Promise<void> {
   error.value = null
 
   try {
-    await session.login({ email: email.value, password: password.value })
+    await session.login({ login: login.value.trim(), password: password.value })
 
     const redirect = route.query.redirect
-    await router.push(typeof redirect === 'string' ? redirect : '/topics')
+    // The router guard picks the role's home when there is no explicit redirect (Task 2).
+    await router.push(typeof redirect === 'string' ? redirect : '/')
   } catch (failure: unknown) {
     error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
   } finally {
@@ -60,11 +61,13 @@ async function submit(): Promise<void> {
 
           <v-form @submit.prevent="submit">
             <v-text-field
-              v-model="email"
-              data-testid="login-email"
-              :label="t('auth.email')"
-              type="email"
-              autocomplete="email"
+              v-model="login"
+              data-testid="login-identifier"
+              :label="t('auth.login')"
+              autocomplete="username"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
               autofocus
             />
             <v-text-field
