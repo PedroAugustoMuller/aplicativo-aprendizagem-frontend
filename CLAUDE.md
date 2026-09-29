@@ -2,11 +2,14 @@
 
 ## Non-negotiable
 
-- **Never run `git commit`** on the user's own branches. Leave changes in
-  the working tree; the user commits. (The one exception is inside a
-  `.worktrees/*` process branch, where the root `CLAUDE.md` explicitly says
-  commits are the process — that exception does not apply once the work
-  lands back in the user's `frontend` repository.)
+- **Commit after every completed task**, once `docker compose run --rm node npm run quality` passes.
+  Match the existing history: a single lowercase conventional-commit line
+  (`feat: ...`, `fix: ...`, `docs: ...`, `test: ...`), authored by the user's
+  git identity. **No AI attribution** — no `Co-Authored-By:` trailer, no
+  "Generated with" line, nothing that marks the commit as AI-written.
+  Design specs and implementation plans do not live here: they are written
+  and committed in the parent workspace repository
+  (`../docs/superpowers/{specs,plans}/`), see the root `CLAUDE.md`.
 - **Everything runs in Docker:** `docker compose up` for the dev server,
   `docker compose up e2e` for the end-to-end suite, and
   `docker compose run --rm node npm run <script>` for one-off commands.
