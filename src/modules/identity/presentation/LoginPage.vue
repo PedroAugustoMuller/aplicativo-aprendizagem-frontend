@@ -20,6 +20,11 @@ const error = ref<ApiError | null>(null)
 const errorMessage = computed(() => (error.value === null ? null : apiErrorMessage(error.value, t, te)))
 
 async function submit(): Promise<void> {
+  // Enter while a login is in flight must not spend another throttled attempt.
+  if (submitting.value) {
+    return
+  }
+
   submitting.value = true
   error.value = null
 
@@ -72,6 +77,7 @@ async function submit(): Promise<void> {
               type="text"
               autocomplete="username"
               autocapitalize="off"
+              autocorrect="off"
               spellcheck="false"
               autofocus
             />

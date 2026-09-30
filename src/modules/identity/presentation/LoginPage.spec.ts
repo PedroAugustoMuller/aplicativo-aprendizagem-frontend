@@ -67,6 +67,7 @@ describe('LoginPage', () => {
     expect(input.attributes('type')).toBe('text')
     expect(input.attributes('autocomplete')).toBe('username')
     expect(input.attributes('autocapitalize')).toBe('off')
+    expect(input.attributes('autocorrect')).toBe('off')
   })
 
   it('shows the translated message for a rejected login', async () => {
@@ -175,5 +176,23 @@ describe('LoginPage', () => {
     await wrapper.find('[data-testid="login-submit"]').trigger('click')
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith({ path: '/change-password', query: {} }))
+  })
+
+  it('sends one login even when Enter is pressed while it is in flight', async () => {
+    const store = useSessionStore()
+    let finish: () => void = () => undefined
+    const login = vi.spyOn(store, 'login').mockImplementation(
+      () => new Promise<void>((resolve) => {
+        finish = resolve
+      }),
+    )
+
+    const wrapper = render()
+    await wrapper.find('[data-testid="login-submit"]').trigger('click')
+    await wrapper.find('form').trigger('submit')
+    finish()
+    await vi.waitFor(() => expect(push).toHaveBeenCalled())
+
+    expect(login).toHaveBeenCalledTimes(1)
   })
 })
