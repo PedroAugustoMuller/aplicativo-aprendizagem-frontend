@@ -14,9 +14,10 @@ vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
 }))
 
 const push = vi.fn()
+const route: { query: Record<string, string> } = { query: {} }
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push }),
-  useRoute: () => ({ query: {} }),
+  useRoute: () => route,
 }))
 
 const vuetify = createVuetify({ components, directives })
@@ -27,6 +28,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    route.query = {}
   })
 
   afterEach(() => {
@@ -113,5 +115,38 @@ describe('LoginPage', () => {
     const wrapper = render()
     await wrapper.find('[data-testid="login-submit"]').trigger('click')
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/subjects'))
+  })
+
+  it('sends a user with a temporary password to the change page, keeping the destination', async () => {
+    route.query = { redirect: '/subjects/s-1/topics' }
+    const store = useSessionStore()
+    vi.spyOn(store, 'login').mockImplementation(async () => {
+      store.$patch({
+        token: 'tok',
+        user: { userId: 'u-13', name: 'Diego', login: 'diego.souza', role: 'student', mustChangePassword: true },
+      })
+    })
+
+    const wrapper = render()
+    await wrapper.find('[data-testid="login-submit"]').trigger('click')
+
+    await vi.waitFor(() =>
+      expect(push).toHaveBeenCalledWith({ path: '/change-password', query: { redirect: '/subjects/s-1/topics' } }),
+    )
+  })
+
+  it('sends a user with a temporary password to the change page when there is no destination', async () => {
+    const store = useSessionStore()
+    vi.spyOn(store, 'login').mockImplementation(async () => {
+      store.$patch({
+        token: 'tok',
+        user: { userId: 'u-13', name: 'Diego', login: 'diego.souza', role: 'student', mustChangePassword: true },
+      })
+    })
+
+    const wrapper = render()
+    await wrapper.find('[data-testid="login-submit"]').trigger('click')
+
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith({ path: '/change-password', query: {} }))
   })
 })

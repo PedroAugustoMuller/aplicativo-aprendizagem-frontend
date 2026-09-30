@@ -15,6 +15,9 @@ const { isDark, setMode } = useAppTheme()
 
 const items = computed(() => [{ title: t('nav.subjects'), icon: mdiBookOpenVariant, to: '/subjects' }])
 
+// While a temporary password is pending every other page is a 403; offer none.
+const showNav = computed(() => session.hasSession && !session.mustChangePassword)
+
 const toggleTheme = () => setMode(isDark.value ? 'light' : 'dark')
 
 async function signOut(): Promise<void> {
@@ -48,7 +51,7 @@ async function signOut(): Promise<void> {
 
     <!-- Desktop: a persistent rail. Phones: nothing here; navigation sits at the bottom. -->
     <v-navigation-drawer
-      v-if="!mobile && session.hasSession"
+      v-if="!mobile && showNav"
       permanent
       rail
     >
@@ -72,7 +75,7 @@ async function signOut(): Promise<void> {
     </v-main>
 
     <v-bottom-navigation
-      v-if="mobile && session.hasSession"
+      v-if="mobile && showNav"
       grow
     >
       <v-btn

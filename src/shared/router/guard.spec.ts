@@ -30,30 +30,50 @@ const tokenStorage = {
 const ANA = { userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false } as const
 
 describe('resolveNavigation', () => {
-  const protectedRoute = { requiresAuth: true, guestOnly: false }
-  const guestRoute = { requiresAuth: false, guestOnly: true }
+  const protectedRoute = { requiresAuth: true, guestOnly: false, passwordChange: false }
+  const guestRoute = { requiresAuth: false, guestOnly: true, passwordChange: false }
+  const passwordRoute = { requiresAuth: true, guestOnly: false, passwordChange: true }
+  const signedIn = { hasSession: true, expired: false, mustChangePassword: false }
+  const pending = { hasSession: true, expired: false, mustChangePassword: true }
 
   it('sends a visitor without a session from a protected route to login', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: false }, '/topics'))
+    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: false, mustChangePassword: false }, '/topics'))
       .toEqual({ path: '/login', query: { redirect: '/topics' } })
   })
 
   it('tells the login page why when the session was just rejected', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: true }, '/topics'))
+    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: true, mustChangePassword: false }, '/topics'))
       .toEqual({ path: '/login', query: { redirect: '/topics', reason: 'expired' } })
   })
 
   it('lets a session through a protected route', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: true, expired: false }, '/topics')).toBe(true)
+    expect(resolveNavigation(protectedRoute, { hasSession: true, expired: false, mustChangePassword: false }, '/topics')).toBe(true)
   })
 
   it('sends a session away from the login page', () => {
-    expect(resolveNavigation(guestRoute, { hasSession: true, expired: false }, '/login'))
+    expect(resolveNavigation(guestRoute, { hasSession: true, expired: false, mustChangePassword: false }, '/login'))
       .toEqual({ path: '/subjects' })
   })
 
+  it('sends a user with a temporary password from any protected route to the change page', () => {
+    expect(resolveNavigation(protectedRoute, pending, '/subjects/s-1/topics'))
+      .toEqual({ path: '/change-password', query: { redirect: '/subjects/s-1/topics' } })
+  })
+
+  it('lets a user with a temporary password reach the change page', () => {
+    expect(resolveNavigation(passwordRoute, pending, '/change-password')).toBe(true)
+  })
+
+  it('sends a user with a temporary password away from login to the change page', () => {
+    expect(resolveNavigation(guestRoute, pending, '/login')).toEqual({ path: '/change-password' })
+  })
+
+  it('still lets a user with a normal password open the change page voluntarily', () => {
+    expect(resolveNavigation(passwordRoute, signedIn, '/change-password')).toBe(true)
+  })
+
   it('lets a visitor without a session reach the login page', () => {
-    expect(resolveNavigation(guestRoute, { hasSession: false, expired: false }, '/login')).toBe(true)
+    expect(resolveNavigation(guestRoute, { hasSession: false, expired: false, mustChangePassword: false }, '/login')).toBe(true)
   })
 })
 
@@ -89,6 +109,7 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
       routes: [
         { path: '/login', component: Stub, meta: { guestOnly: true } },
         { path: '/topics', component: Stub, meta: { requiresAuth: true } },
+        { path: '/change-password', component: Stub, meta: { requiresAuth: true, passwordChange: true } },
       ],
     })
     installSessionGuard(router, () => useSessionStore())
@@ -157,6 +178,16 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
 
     expect(router.currentRoute.value.query.reason).toBe('expired')
     expect(useSessionStore().hasSession).toBe(false)
+  })
+
+  it('sends a restored user who must change the password to the change page', async () => {
+    tokenStorage.write('valid')
+    currentUser.mockResolvedValue({ ...ANA, mustChangePassword: true })
+
+    await router.push('/topics')
+
+    expect(router.currentRoute.value.path).toBe('/change-password')
+    expect(router.currentRoute.value.query).toEqual({ redirect: '/topics' })
   })
 
   it('sends a visitor without a token to login without the expiry notice', async () => {

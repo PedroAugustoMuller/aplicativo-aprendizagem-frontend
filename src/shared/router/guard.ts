@@ -4,6 +4,8 @@ import type { RestoreOutcome } from '@/modules/identity/application/sessionStore
 export interface RouteFlags {
   requiresAuth: boolean
   guestOnly: boolean
+  /** The change-password page itself: reachable while a change is pending. */
+  passwordChange: boolean
 }
 
 export interface SessionState {
@@ -11,6 +13,8 @@ export interface SessionState {
   hasSession: boolean
   /** restore() just discarded a token the server rejected with a 401. */
   expired: boolean
+  /** The server said this user still has a temporary password. */
+  mustChangePassword: boolean
 }
 
 /** The slice of the session store the guard and the 401 handler need. */
@@ -19,6 +23,8 @@ export interface GuardedSession {
   /** Only compared with null: the guard needs to know whether restore() is due. */
   readonly user: unknown
   readonly hasSession: boolean
+  /** False while the user is unknown; the guard can only enforce what it knows. */
+  readonly mustChangePassword: boolean
   restore(): Promise<RestoreOutcome>
   clear(): void
 }
@@ -33,6 +39,18 @@ export function resolveNavigation(
     return {
       path: '/login',
       query: session.expired ? { redirect: targetPath, reason: 'expired' } : { redirect: targetPath },
+    }
+  }
+
+  // Mirrors the backend's password.changed middleware: nothing else works until
+  // the temporary password is replaced, so do not let the user wander into 403s.
+  if (session.hasSession && session.mustChangePassword && !flags.passwordChange) {
+    if (flags.requiresAuth) {
+      return { path: '/change-password', query: { redirect: targetPath } }
+    }
+
+    if (flags.guestOnly) {
+      return { path: '/change-password' }
     }
   }
 
@@ -80,8 +98,12 @@ export function installSessionGuard(router: Router, getSession: () => GuardedSes
     }
 
     return resolveNavigation(
-      { requiresAuth: to.meta.requiresAuth === true, guestOnly: to.meta.guestOnly === true },
-      { hasSession: session.hasSession, expired },
+      {
+        requiresAuth: to.meta.requiresAuth === true,
+        guestOnly: to.meta.guestOnly === true,
+        passwordChange: to.meta.passwordChange === true,
+      },
+      { hasSession: session.hasSession, expired, mustChangePassword: session.mustChangePassword },
       to.fullPath,
     )
   })
