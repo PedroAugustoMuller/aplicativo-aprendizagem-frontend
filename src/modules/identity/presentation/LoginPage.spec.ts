@@ -56,7 +56,7 @@ describe('LoginPage', () => {
     await wrapper.find('[data-testid="login-submit"]').trigger('click')
     await vi.waitFor(() => expect(wrapper.find('[data-testid="login-error"]').exists()).toBe(true))
 
-    expect(wrapper.find('[data-testid="login-error"]').text()).toBe('E-mail ou senha incorretos.')
+    expect(wrapper.find('[data-testid="login-error"]').text()).toBe('E-mail/usuário ou senha incorretos.')
   })
 
   it('re-renders the current error when the language changes', async () => {
@@ -70,7 +70,7 @@ describe('LoginPage', () => {
 
     i18n.global.locale.value = 'en'
     await vi.waitFor(() =>
-      expect(wrapper.find('[data-testid="login-error"]').text()).toBe('Incorrect email or password.'),
+      expect(wrapper.find('[data-testid="login-error"]').text()).toBe('Incorrect email/username or password.'),
     )
   })
 

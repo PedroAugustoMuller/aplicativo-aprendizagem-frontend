@@ -32,6 +32,7 @@ export default {
     },
     system: {
       unexpected_error: 'Something went wrong on our end. Try again shortly.',
+      idempotency_conflict: 'This operation conflicts with an earlier one. Reload the page and try again.',
     },
     auth: {
       unauthenticated: 'You need to sign in to continue.',
@@ -51,9 +52,28 @@ export default {
       max: 'Maximum of {arg0} characters.',
       min: 'Minimum of {arg0} characters.',
       string: 'Invalid value.',
+      different: 'The new password must be different from the current one.',
+    },
+    content: {
+      subject: {
+        name_already_taken: 'A subject with this name already exists.',
+      },
+      subject_not_found: 'Subject not found.',
     },
     identity: {
-      invalid_credentials: 'Incorrect email or password.',
+      invalid_credentials: 'Incorrect email/username or password.',
+      account_deactivated: 'This account has been deactivated. Talk to the school.',
+      current_password_invalid: 'The current password is incorrect.',
+      email_already_taken: 'This email is already in use.',
+      password_change_required: 'You need to change your password before continuing.',
+      student_not_found: 'Student not found.',
+      teacher_not_found: 'Teacher not found.',
+      classroom_not_found: 'Class not found.',
+      classroom: {
+        enrolment_requires_active_student: 'Only active students can be enrolled.',
+        name_already_taken: 'A class with this name already exists.',
+        subject_inactive: "This class's subject is inactive.",
+      },
     },
   },
 }

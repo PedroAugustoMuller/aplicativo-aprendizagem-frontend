@@ -32,6 +32,7 @@ export default {
     },
     system: {
       unexpected_error: 'Algo deu errado do nosso lado. Tente de novo em instantes.',
+      idempotency_conflict: 'Esta operação conflita com uma anterior. Recarregue a página e tente de novo.',
     },
     auth: {
       unauthenticated: 'Você precisa entrar para continuar.',
@@ -51,9 +52,28 @@ export default {
       max: 'Máximo de {arg0} caracteres.',
       min: 'Mínimo de {arg0} caracteres.',
       string: 'Valor inválido.',
+      different: 'A nova senha precisa ser diferente da atual.',
+    },
+    content: {
+      subject: {
+        name_already_taken: 'Já existe uma matéria com esse nome.',
+      },
+      subject_not_found: 'Matéria não encontrada.',
     },
     identity: {
-      invalid_credentials: 'E-mail ou senha incorretos.',
+      invalid_credentials: 'E-mail/usuário ou senha incorretos.',
+      account_deactivated: 'Esta conta foi desativada. Fale com a escola.',
+      current_password_invalid: 'A senha atual está incorreta.',
+      email_already_taken: 'Este e-mail já está em uso.',
+      password_change_required: 'Você precisa trocar sua senha antes de continuar.',
+      student_not_found: 'Aluno não encontrado.',
+      teacher_not_found: 'Professor não encontrado.',
+      classroom_not_found: 'Turma não encontrada.',
+      classroom: {
+        enrolment_requires_active_student: 'Só é possível matricular alunos ativos.',
+        name_already_taken: 'Já existe uma turma com esse nome.',
+        subject_inactive: 'A matéria desta turma está inativa.',
+      },
     },
   },
 }
