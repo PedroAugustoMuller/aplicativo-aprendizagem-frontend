@@ -1,7 +1,7 @@
 import { identityRequests } from '@/modules/identity/infrastructure/client/requests'
 import { ApiError } from '@/shared/api/error'
 import type { AuthRepository } from '@/modules/identity/domain/AuthRepository'
-import type { AuthenticatedUser, Credentials, Role, Session } from '@/modules/identity/domain/Session'
+import type { AuthenticatedUser, Credentials, PasswordChange, Role, Session } from '@/modules/identity/domain/Session'
 import type { CurrentUserResponse } from '@/modules/identity/infrastructure/interfaces/LoginResponse'
 
 const ROLES: readonly Role[] = ['admin', 'teacher', 'student']
@@ -41,5 +41,12 @@ export const authRepository: AuthRepository = {
 
   async currentUser(): Promise<AuthenticatedUser> {
     return toUser(await identityRequests.currentUser())
+  },
+
+  async changePassword(change: PasswordChange): Promise<void> {
+    await identityRequests.changePassword({
+      current_password: change.currentPassword,
+      new_password: change.newPassword,
+    })
   },
 }

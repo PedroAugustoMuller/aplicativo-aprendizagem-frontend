@@ -20,6 +20,16 @@ export default {
     submit: 'Sign in',
     signedOut: 'Your session expired. Sign in again.',
   },
+  password: {
+    title: 'Change password',
+    required: 'Create a new password to continue.',
+    current: 'Current password',
+    new: 'New password',
+    confirm: 'Confirm the new password',
+    submit: 'Save new password',
+    tooShort: 'The new password must be at least {min} characters long.',
+    mismatch: 'The passwords do not match.',
+  },
   subjects: {
     title: 'Subjects',
     empty: 'No subjects available yet.',

@@ -13,6 +13,12 @@ export const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: '/change-password',
+      name: 'change-password',
+      component: () => import('@/modules/identity/presentation/ChangePasswordPage.vue'),
+      meta: { requiresAuth: true, passwordChange: true },
+    },
+    {
       path: '/subjects',
       name: 'subjects',
       component: () => import('@/modules/content/presentation/SubjectsPage.vue'),

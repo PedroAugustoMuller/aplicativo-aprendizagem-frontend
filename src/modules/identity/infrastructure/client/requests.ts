@@ -12,4 +12,7 @@ export const identityRequests = {
   logout: () => api.post<null>({ url: identityRoutes.logout }),
 
   currentUser: () => api.get<CurrentUserResponse>({ url: identityRoutes.me }),
+
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.put<null>({ url: identityRoutes.password, data }),
 }

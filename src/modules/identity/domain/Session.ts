@@ -18,3 +18,8 @@ export interface Credentials {
   readonly login: string
   readonly password: string
 }
+
+export interface PasswordChange {
+  readonly currentPassword: string
+  readonly newPassword: string
+}

@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { authRepository } from '@/modules/identity/infrastructure/HttpAuthRepository'
 import { tokenStorage } from '@/modules/identity/infrastructure/persistence/tokenStorage'
 import { ApiError } from '@/shared/api/error'
-import type { AuthenticatedUser, Credentials } from '@/modules/identity/domain/Session'
+import type { AuthenticatedUser, Credentials, PasswordChange } from '@/modules/identity/domain/Session'
 
 /**
  * What restore() found out:
@@ -26,6 +26,9 @@ export const useSessionStore = defineStore('session', () => {
   const hasSession = computed(() => token.value !== null)
   // isAuthenticated: the server has confirmed the token and the user is known.
   const isAuthenticated = computed(() => token.value !== null && user.value !== null)
+  // False while the user is unknown (e.g. an offline reload): pages then show the
+  // backend's own 403 until restore() succeeds and the guard can redirect.
+  const mustChangePassword = computed(() => user.value?.mustChangePassword === true)
 
   async function login(credentials: Credentials): Promise<void> {
     const { token: issued, ...authenticated } = await authRepository.login(credentials)
@@ -33,6 +36,15 @@ export const useSessionStore = defineStore('session', () => {
     token.value = issued
     user.value = authenticated
     tokenStorage.write(issued)
+  }
+
+  async function changePassword(change: PasswordChange): Promise<void> {
+    await authRepository.changePassword(change)
+
+    // The backend keeps this token and revokes the others; the session stays valid.
+    if (user.value !== null) {
+      user.value = { ...user.value, mustChangePassword: false }
+    }
   }
 
   function clear(): void {
@@ -88,5 +100,17 @@ export const useSessionStore = defineStore('session', () => {
     return inFlight
   }
 
-  return { token, user, restoring, hasSession, isAuthenticated, login, logout, clear, restore }
+  return {
+    token,
+    user,
+    restoring,
+    hasSession,
+    isAuthenticated,
+    mustChangePassword,
+    login,
+    logout,
+    clear,
+    restore,
+    changePassword,
+  }
 })

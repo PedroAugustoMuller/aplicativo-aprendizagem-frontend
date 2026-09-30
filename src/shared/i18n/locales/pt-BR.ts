@@ -20,6 +20,16 @@ export default {
     submit: 'Entrar',
     signedOut: 'Sua sessão expirou. Entre novamente.',
   },
+  password: {
+    title: 'Trocar senha',
+    required: 'Crie uma nova senha para continuar.',
+    current: 'Senha atual',
+    new: 'Nova senha',
+    confirm: 'Confirme a nova senha',
+    submit: 'Salvar nova senha',
+    tooShort: 'A nova senha precisa ter pelo menos {min} caracteres.',
+    mismatch: 'As senhas não conferem.',
+  },
   subjects: {
     title: 'Matérias',
     empty: 'Nenhuma matéria disponível ainda.',

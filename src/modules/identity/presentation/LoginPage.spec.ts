@@ -10,7 +10,7 @@ import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
-  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn() },
+  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
 }))
 
 const push = vi.fn()

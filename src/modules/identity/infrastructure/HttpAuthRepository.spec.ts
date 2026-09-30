@@ -4,7 +4,7 @@ import { identityRequests } from '@/modules/identity/infrastructure/client/reque
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/identity/infrastructure/client/requests', () => ({
-  identityRequests: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn() },
+  identityRequests: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
 }))
 
 const ANA_RESPONSE = {
@@ -64,6 +64,17 @@ describe('HttpAuthRepository', () => {
 
     await expect(authRepository.login({ login: 'a@b.c', password: 'wrong' })).rejects.toMatchObject({
       code: 'identity.invalid_credentials',
+    })
+  })
+
+  it('sends a password change in the backend\'s field names', async () => {
+    vi.mocked(identityRequests.changePassword).mockResolvedValue(null)
+
+    await authRepository.changePassword({ currentPassword: 'Temp2345', newPassword: 'nova-senha-1' })
+
+    expect(identityRequests.changePassword).toHaveBeenCalledWith({
+      current_password: 'Temp2345',
+      new_password: 'nova-senha-1',
     })
   })
 

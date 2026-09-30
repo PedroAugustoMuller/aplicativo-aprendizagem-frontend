@@ -6,7 +6,7 @@ import { tokenStorage } from '@/modules/identity/infrastructure/persistence/toke
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
-  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn() },
+  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
 }))
 
 const ANA = {
@@ -50,6 +50,43 @@ describe('sessionStore', () => {
     expect(store.user).toEqual(ANA)
     expect(store.user).not.toHaveProperty('token')
     expect(store.token).toBe('tok')
+  })
+
+  it('knows when the user must change a temporary password', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue({ ...ANA_SESSION, mustChangePassword: true })
+
+    const store = useSessionStore()
+    expect(store.mustChangePassword).toBe(false)
+
+    await store.login(ANA_CREDENTIALS)
+
+    expect(store.mustChangePassword).toBe(true)
+  })
+
+  it('clears the requirement and keeps the session after a password change', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue({ ...ANA_SESSION, mustChangePassword: true })
+    vi.mocked(authRepository.changePassword).mockResolvedValue(undefined)
+
+    const store = useSessionStore()
+    await store.login(ANA_CREDENTIALS)
+    await store.changePassword({ currentPassword: 'password', newPassword: 'nova-senha-1' })
+
+    expect(authRepository.changePassword).toHaveBeenCalledWith({ currentPassword: 'password', newPassword: 'nova-senha-1' })
+    expect(store.mustChangePassword).toBe(false)
+    expect(store.token).toBe('tok')
+    expect(tokenStorage.read()).toBe('tok')
+  })
+
+  it('leaves the requirement in place when the change is rejected', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue({ ...ANA_SESSION, mustChangePassword: true })
+    vi.mocked(authRepository.changePassword).mockRejectedValue(new ApiError('identity.current_password_invalid', {}, 422))
+
+    const store = useSessionStore()
+    await store.login(ANA_CREDENTIALS)
+
+    await expect(store.changePassword({ currentPassword: 'x', newPassword: 'nova-senha-1' }))
+      .rejects.toMatchObject({ code: 'identity.current_password_invalid' })
+    expect(store.mustChangePassword).toBe(true)
   })
 
   it('leaves the store clean when login fails', async () => {

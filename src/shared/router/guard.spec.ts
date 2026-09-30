@@ -17,7 +17,7 @@ import { ApiError } from '@/shared/api/error'
 const { currentUser } = vi.hoisted(() => ({ currentUser: vi.fn() }))
 
 vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
-  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser },
+  authRepository: { login: vi.fn(), logout: vi.fn(), currentUser, changePassword: vi.fn() },
 }))
 
 const TOKEN_KEY = 'quimica.auth.token'
