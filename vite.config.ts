@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: 'Química 9º Ano',
-        short_name: 'Química',
-        description: 'Quiz de química para o 9º ano do Ensino Fundamental',
+        name: 'Quiz Dom Pedro II',
+        short_name: 'Quiz DP II',
+        description: 'Quiz gamificado para o 9º ano da E.M.E.F. Dom Pedro II',
         lang: 'pt-BR',
         theme_color: '#00695C',
         background_color: '#FFFFFF',

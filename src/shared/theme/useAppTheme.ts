@@ -11,7 +11,7 @@ export const resolveThemeName = (mode: ThemeMode, prefersDark: boolean): 'light'
 export function useAppTheme() {
   const theme = useTheme()
   const prefersDark = usePreferredDark()
-  const mode = useStorage<ThemeMode>('quimica.theme', 'system')
+  const mode = useStorage<ThemeMode>('dp2.theme', 'system')
 
   const themeName = computed(() => resolveThemeName(mode.value, prefersDark.value))
 

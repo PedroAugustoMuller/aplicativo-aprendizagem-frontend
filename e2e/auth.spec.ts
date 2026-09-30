@@ -89,7 +89,7 @@ test.describe('with the shared session', () => {
     await page.goto('/topics')
     await expect(page.getByTestId('topics-list')).toBeVisible()
 
-    await page.evaluate(() => window.localStorage.setItem('quimica.auth.token', 'no-longer-valid'))
+    await page.evaluate(() => window.localStorage.setItem('dp2.auth.token', 'no-longer-valid'))
     await page.reload()
 
     await expect(page).toHaveURL(/\/login/)

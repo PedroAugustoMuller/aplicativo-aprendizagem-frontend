@@ -1,4 +1,4 @@
-const KEY = 'quimica.auth.token'
+const KEY = 'dp2.auth.token'
 
 /**
  * localStorage throws in private mode and in some embedded browsers.

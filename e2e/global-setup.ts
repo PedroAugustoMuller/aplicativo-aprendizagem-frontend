@@ -10,7 +10,7 @@ const AUTH_FILE = fileURLToPath(new URL('./.auth/teacher.json', import.meta.url)
 const LOGIN_URL = 'http://localhost:8080/api/v1/auth/login'
 const APP_ORIGIN = 'http://localhost:5173'
 const TEACHER = { email: 'ana@escola.br', password: 'password' }
-const TOKEN_STORAGE_KEY = 'quimica.auth.token'
+const TOKEN_STORAGE_KEY = 'dp2.auth.token'
 
 /**
  * Narrows the login response body without a type assertion. The backend

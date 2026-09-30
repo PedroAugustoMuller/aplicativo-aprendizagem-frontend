@@ -1,7 +1,7 @@
 export default {
   app: {
-    name: 'Química 9º Ano',
-    tagline: 'Estude química respondendo quizzes',
+    name: 'Quiz Dom Pedro II',
+    tagline: 'Estude respondendo quizzes',
   },
   nav: {
     subjects: 'Matérias',

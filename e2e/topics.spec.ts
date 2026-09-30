@@ -48,7 +48,7 @@ test.describe('topics', () => {
 
     await page.getByTestId('theme-toggle').click()
     await expect(app).toHaveClass(new RegExp(`\\bv-theme--${toggled}\\b`))
-    expect(await page.evaluate(() => window.localStorage.getItem('quimica.theme'))).toBe(toggled)
+    expect(await page.evaluate(() => window.localStorage.getItem('dp2.theme'))).toBe(toggled)
 
     await page.reload()
 

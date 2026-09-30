@@ -1,7 +1,7 @@
 export default {
   app: {
-    name: 'Chemistry 9th Grade',
-    tagline: 'Study chemistry by answering quizzes',
+    name: 'Quiz Dom Pedro II',
+    tagline: 'Study by answering quizzes',
   },
   nav: {
     subjects: 'Subjects',

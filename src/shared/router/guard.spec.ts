@@ -20,7 +20,7 @@ vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
   authRepository: { login: vi.fn(), logout: vi.fn(), currentUser, changePassword: vi.fn() },
 }))
 
-const TOKEN_KEY = 'quimica.auth.token'
+const TOKEN_KEY = 'dp2.auth.token'
 const tokenStorage = {
   write: (token: string) => localStorage.setItem(TOKEN_KEY, token),
   read: () => localStorage.getItem(TOKEN_KEY),
