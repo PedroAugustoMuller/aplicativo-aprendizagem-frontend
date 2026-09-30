@@ -113,6 +113,7 @@ describe('TopicsPage', () => {
 
     expect(wrapper.find('[data-testid="topics-error"]').text())
       .toContain('Você precisa trocar sua senha antes de continuar.')
+    expect(wrapper.find('[data-testid="topics-change-password"]').exists()).toBe(true)
   })
 
   it('retries the same subject', async () => {

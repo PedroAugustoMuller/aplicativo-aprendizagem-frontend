@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
-import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
+import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 
-const { t, te } = useI18n()
+const { t } = useI18n()
 const store = useSubjectStore()
-
-const errorMessage = computed(() =>
-  store.error === null ? null : apiErrorMessage(store.error, t, te),
-)
 
 // Always refetch here: this page is where a newly enrolled subject should appear.
 onMounted(() => void store.load())
@@ -27,24 +23,12 @@ onMounted(() => void store.load())
       data-testid="subjects-loading"
     />
 
-    <v-alert
-      v-else-if="errorMessage"
-      type="error"
-      variant="tonal"
-      data-testid="subjects-error"
-      class="mb-4"
-    >
-      {{ errorMessage }}
-      <template #append>
-        <v-btn
-          variant="text"
-          data-testid="subjects-retry"
-          @click="store.load()"
-        >
-          {{ t('common.retry') }}
-        </v-btn>
-      </template>
-    </v-alert>
+    <ApiErrorAlert
+      v-else-if="store.error"
+      :error="store.error"
+      testid="subjects"
+      @retry="store.load()"
+    />
 
     <v-alert
       v-else-if="store.subjects.length === 0"

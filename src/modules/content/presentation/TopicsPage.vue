@@ -5,10 +5,10 @@ import { useRoute } from 'vue-router'
 import { mdiArrowLeft } from '@mdi/js'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
-import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
+import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import TopicCard from '@/modules/content/presentation/TopicCard.vue'
 
-const { t, te } = useI18n()
+const { t } = useI18n()
 const route = useRoute()
 const store = useTopicStore()
 const subjects = useSubjectStore()
@@ -21,10 +21,6 @@ const subjectId = computed(() => {
 
 // The subject list only feeds the title; if it cannot load, the page still works.
 const title = computed(() => subjects.nameOf(subjectId.value) ?? t('topics.fallbackTitle'))
-
-const errorMessage = computed(() =>
-  store.error === null ? null : apiErrorMessage(store.error, t, te),
-)
 
 // Same component instance across /subjects/a/topics -> /subjects/b/topics: watch the param.
 watch(
@@ -62,24 +58,12 @@ watch(
       data-testid="topics-loading"
     />
 
-    <v-alert
-      v-else-if="errorMessage"
-      type="error"
-      variant="tonal"
-      data-testid="topics-error"
-      class="mb-4"
-    >
-      {{ errorMessage }}
-      <template #append>
-        <v-btn
-          variant="text"
-          data-testid="topics-retry"
-          @click="store.load(subjectId)"
-        >
-          {{ t('common.retry') }}
-        </v-btn>
-      </template>
-    </v-alert>
+    <ApiErrorAlert
+      v-else-if="store.error"
+      :error="store.error"
+      testid="topics"
+      @retry="store.load(subjectId)"
+    />
 
     <v-alert
       v-else-if="store.topics.length === 0"
