@@ -3,21 +3,37 @@
 // the login budget comment at the top of e2e/auth.spec.ts.
 import { expect, test } from '@playwright/test'
 
-test.describe('topics', () => {
-  test('the seeded chemistry syllabus is listed in order', async ({ page }) => {
-    await page.goto('/topics')
+// SubjectsSeeder's fixed id for Química.
+const CHEMISTRY_ID = '0192f0a0-0000-7000-8000-000000000001'
 
+test.describe('subjects and topics', () => {
+  test('the seeded subjects are listed', async ({ page }) => {
+    await page.goto('/subjects')
+
+    await expect(page.getByTestId('subjects-list')).toBeVisible()
+    await expect(page.getByTestId(`subject-${CHEMISTRY_ID}`)).toContainText('Química')
+  })
+
+  test('opening a subject lists its topics in order', async ({ page }) => {
+    await page.goto('/subjects')
+    await page.getByTestId(`subject-${CHEMISTRY_ID}`).click()
+
+    await expect(page).toHaveURL(new RegExp(`/subjects/${CHEMISTRY_ID}/topics$`))
+    await expect(page.getByTestId('topics-title')).toHaveText('Química')
     await expect(page.getByTestId('topics-list')).toBeVisible()
 
     const titles = await page.locator('[data-testid^="topic-"] .v-card-title').allTextContents()
     expect(titles.length).toBeGreaterThanOrEqual(6)
     expect(titles[0]?.trim()).toBe('Matéria e suas Transformações')
+
+    await page.getByTestId('topics-back').click()
+    await expect(page).toHaveURL(/\/subjects$/)
   })
 
   test('a failing request shows a translated error and retry recovers', async ({ page }) => {
-    await page.route('**/api/v1/topics', (route) => route.abort('failed'))
+    await page.route('**/api/v1/subjects/*/topics', (route) => route.abort('failed'))
 
-    await page.goto('/topics')
+    await page.goto(`/subjects/${CHEMISTRY_ID}/topics`)
 
     const error = page.getByTestId('topics-error')
     await expect(error).toBeVisible()
@@ -25,7 +41,7 @@ test.describe('topics', () => {
     await expect(error).not.toContainText('api.network_unavailable')
 
     // Network back: retry must actually reload, not just be visible.
-    await page.unroute('**/api/v1/topics')
+    await page.unroute('**/api/v1/subjects/*/topics')
     await page.getByTestId('topics-retry').click()
 
     await expect(page.getByTestId('topics-list')).toBeVisible()
@@ -33,8 +49,8 @@ test.describe('topics', () => {
   })
 
   test('the theme toggle switches the applied theme and survives a reload', async ({ page }) => {
-    await page.goto('/topics')
-    await expect(page.getByTestId('topics-list')).toBeVisible()
+    await page.goto('/subjects')
+    await expect(page.getByTestId('subjects-list')).toBeVisible()
 
     // Icons are inline SVG paths (mdi-svg + @mdi/js). A blank icon - no set
     // configured, or a font class with no font shipped - has no <path d>.
@@ -52,13 +68,13 @@ test.describe('topics', () => {
 
     await page.reload()
 
-    await expect(page.getByTestId('topics-list')).toBeVisible()
+    await expect(page.getByTestId('subjects-list')).toBeVisible()
     await expect(app).toHaveClass(new RegExp(`\\bv-theme--${toggled}\\b`))
   })
 
   test('navigation layout matches the viewport', async ({ page }, testInfo) => {
-    await page.goto('/topics')
-    await expect(page.getByTestId('topics-list')).toBeVisible()
+    await page.goto('/subjects')
+    await expect(page.getByTestId('subjects-list')).toBeVisible()
 
     if (testInfo.project.name === 'desktop') {
       await expect(page.locator('.v-navigation-drawer')).toBeVisible()

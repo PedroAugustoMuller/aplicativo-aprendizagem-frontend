@@ -7,9 +7,13 @@ import { request } from '@playwright/test'
 // this storageState (see playwright.config.ts); the two tests that must run
 // without a session override it explicitly.
 const AUTH_FILE = fileURLToPath(new URL('./.auth/teacher.json', import.meta.url))
-const LOGIN_URL = 'http://localhost:8080/api/v1/auth/login'
+const API_URL = 'http://localhost:8080/api/v1'
+const LOGIN_URL = `${API_URL}/auth/login`
+const DIEGO_FILE = fileURLToPath(new URL('./.auth/diego.json', import.meta.url))
+// DevelopmentAccountsSeeder's fixed id for diego.souza.
+const DIEGO_ID = '0192f0a0-0000-7000-8000-000000000013'
 const APP_ORIGIN = 'http://localhost:5173'
-const TEACHER = { email: 'ana@escola.br', password: 'password' }
+const TEACHER = { login: 'ana@escola.br', password: 'password' }
 const TOKEN_STORAGE_KEY = 'dp2.auth.token'
 
 /**
@@ -35,6 +39,27 @@ function readToken(body: unknown): string {
   }
 
   return token
+}
+
+/** Narrows the reset-password response to the temporary password it issued. */
+function readTemporaryPassword(body: unknown): string {
+  if (typeof body !== 'object' || body === null || !('data' in body)) {
+    throw new Error('Unexpected reset-password response shape: missing "data".')
+  }
+
+  const { data } = body
+
+  if (typeof data !== 'object' || data === null || !('temporary_password' in data)) {
+    throw new Error('Unexpected reset-password response shape: missing "data.temporary_password".')
+  }
+
+  const { temporary_password: password } = data
+
+  if (typeof password !== 'string') {
+    throw new Error('Unexpected reset-password response shape: "temporary_password" is not a string.')
+  }
+
+  return password
 }
 
 /**
@@ -80,6 +105,21 @@ export default async function globalSetup(): Promise<void> {
           },
         ],
       }),
+    )
+
+    // Diego must start every run with a temporary password, even after a previous
+    // run changed it. Reset through the admin API - no login spent, no reseed needed.
+    const reset = await context.post(`${API_URL}/students/${DIEGO_ID}/reset-password`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    })
+
+    if (!reset.ok()) {
+      throw new Error(`Global setup could not reset diego.souza's password (HTTP ${reset.status()}).`)
+    }
+
+    await writeFile(
+      DIEGO_FILE,
+      JSON.stringify({ login: 'diego.souza', password: readTemporaryPassword(await reset.json()) }),
     )
   } finally {
     await context.dispose()

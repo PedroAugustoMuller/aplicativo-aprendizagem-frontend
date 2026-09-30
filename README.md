@@ -1,8 +1,8 @@
-# Química 9º Ano — frontend
+# Quiz Dom Pedro II — frontend
 
-The Vue 3 PWA for a gamified chemistry quiz for 9th-grade students at
-E.M.E.F. Dom Pedro II (Venâncio Aires/RS). Teachers register content and
-questions; students answer quizzes with randomised questions, get immediate
+The Vue 3 PWA for a gamified quiz for 9th-grade students at E.M.E.F. Dom
+Pedro II (Venâncio Aires/RS). Teachers register content and questions per
+subject; students answer quizzes with randomised questions, get immediate
 feedback, and climb a per-topic ranking.
 
 The API lives in a separate repository, `backend/` (a Laravel app), served
@@ -21,7 +21,10 @@ through `docker compose exec`. You need:
   `sync:error-codes` only needs that checkout to exist with
   `docs/error-codes.json` present in it — it copies a file off a read-only
   bind mount, no server involved (see `BACKEND_DOCS` / `BACKEND_ERROR_CODES`
-  below if your checkout isn't a sibling). The dev server's API calls and the
+  below if your checkout isn't a sibling). In the workspace layout, where the
+  checkout is named `aplicativo-aprendizagem-backend`, set
+  `BACKEND_DOCS=../aplicativo-aprendizagem-backend/docs` in your local `.env`.
+  The dev server's API calls and the
   end-to-end suite need the backend actually **running, migrated, and
   seeded** at `http://localhost:8080`. Unit tests and the
   TypeScript/lint/architecture checks need neither the checkout nor a running
@@ -67,8 +70,11 @@ docker compose up
 ```
 
 The first `up` installs dependencies before starting Vite; later ones go
-straight to the dev server. Open `http://localhost:5173` and sign in with the
-seeded teacher, `ana@escola.br` / `password`. Stop it with Ctrl+C, or use
+straight to the dev server. Open `http://localhost:5173` and sign in with any
+seeded account — the field takes an email **or** a username: admin
+`ana@escola.br` / `password`, teacher `bruno@escola.br` / `password`, student
+`carla.dias` / `password`. `diego.souza` has a temporary password and is sent
+to `/change-password` first. Stop it with Ctrl+C, or use
 `docker compose up -d` to run it in the background and `docker compose down`
 to stop it.
 
@@ -115,7 +121,7 @@ test:e2e`:
   which is why both the dev server and the production preview use it instead
   of Vite's default 4173.
 - **Login budget.** The backend throttles `POST /auth/login` to 5 attempts
-  per minute per email+IP. This suite spends 4 per run: one API login in
+  per minute per login+IP. This suite spends 4 per run: one API login in
   `e2e/global-setup.ts` (shared as `storageState` by every test), a
   sign-in/sign-out journey run on both projects, and a wrong-password test
   run on `desktop` only. The two login-issuing tests run with retries
@@ -123,6 +129,9 @@ test:e2e`:
   cascade past the budget. **Wait 60 seconds between runs.** A 429 raised
   from `globalSetup` says so explicitly. If you add a test that logs in,
   revisit the budget comment at the top of `e2e/auth.spec.ts` first.
+- Global setup also resets `diego.souza` through the admin API each run, so
+  the password-change journey is repeatable without reseeding. That journey
+  logs in as Diego once, on `desktop` only, in his own throttle bucket.
 - Never run `playwright install`; the `e2e` service's image already has the
   browsers baked in, matched to the pinned `@playwright/test` version.
 
@@ -147,11 +156,12 @@ src/
     ui/                the app shell (AppLayout)
 ```
 
-The current modules are `identity` (login, session) and `content` (topics).
+The current modules are `identity` (login, session, password change) and
+`content` (subjects and their topics).
 `Quiz` and `Scoring` will follow the same shape when they land.
 
 The domain sits behind a repository **interface** (`AuthRepository`,
-`TopicRepository`), and only `infrastructure/` implements it against HTTP
+`SubjectRepository`, `TopicRepository`), and only `infrastructure/` implements it against HTTP
 today. Nothing is injected yet: each store imports the concrete HTTP
 repository instance (exported typed as the interface). So when an
 IndexedDB-backed adapter lands in `infrastructure/persistence/` for offline
@@ -210,6 +220,11 @@ the app shell gate on `hasSession`:
   `src/shared/router/guard.ts`) always clears the session, but navigates to
   `/login?reason=expired` only when the current route requires auth; on first
   load the guard alone owns the redirect.
+- While the server reports `must_change_password`, the guard sends every
+  protected route to `/change-password?redirect=<target>` and the shell hides
+  navigation. The guard only knows this once `/auth/me` has answered; after an
+  offline reload, pages show the backend's translated
+  `identity.password_change_required` until it does.
 
 ## Adding a module
 
@@ -329,7 +344,7 @@ project automatically, deploys on every push to the main branch (or via
 service worker requires. The only environment variable to configure there is
 `VITE_API_URL`, pointed at the backend's public URL.
 
-The router uses HTML5 history mode, so a deep link or a reload on `/topics`
+The router uses HTML5 history mode, so a deep link or a reload on `/subjects`
 asks the CDN for a file that does not exist. `vercel.json` rewrites every
 path that isn't a real file in `dist/` to `/index.html` so the client-side
 router can take over (Vercel serves existing static files before applying

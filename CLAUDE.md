@@ -145,10 +145,13 @@
   both the `desktop` and `mobile` Playwright projects — never against a
   concurrently running dev server (stop it first with `docker compose down`; the suite builds and
   serves the production bundle itself on port 5173).
-- The backend throttles login to 5/minute per email+IP; the suite already
+- The backend throttles login to 5/minute per login+IP; the suite already
   spends 4 of those per run. Read the login-budget comment at the top of
   `e2e/auth.spec.ts` before adding any test that submits the login form, and
-  never give a login-issuing test retries.
+  never give a login-issuing test retries. Global setup also resets
+  `diego.souza` via `POST /students/{id}/reset-password` (no login spent); the
+  password-change journey logs in as Diego once, desktop only, in his own
+  throttle bucket.
 
 ## Language
 
@@ -158,6 +161,6 @@
   - user-facing PWA/document metadata: the manifest values in
     `vite.config.ts` and the `<title>` in `index.html`;
   - test fixtures and assertions of translated or seeded text (e.g.
-    `'E-mail ou senha incorretos.'` in specs, `'Matéria e suas
+    `'E-mail/usuário ou senha incorretos.'` in specs, `'Matéria e suas
     Transformações'` in e2e);
-  - seeded chemistry content on the backend side.
+  - seeded subject and topic content on the backend side.
