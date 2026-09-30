@@ -18,6 +18,10 @@ describe('safeRedirect', () => {
     ['under the change page', '/change-password/'],
     ['the change page with a hash', '/change-password#x'],
     ['an empty string', ''],
+    ['the login page in capitals', '/LOGIN'],
+    ['the change page in mixed case', '/Change-Password?redirect=/subjects'],
+    ['a control character that parses as another origin', '/\t/evil.com'],
+    ['a backslash anywhere', '/subjects\\..\\evil'],
   ])('rejects %s', (_label, value) => {
     expect(safeRedirect(value)).toBeNull()
   })
