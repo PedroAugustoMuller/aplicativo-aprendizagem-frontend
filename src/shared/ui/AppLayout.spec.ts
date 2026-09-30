@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent } from 'vue'
+import { defineComponent, nextTick } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -8,6 +8,8 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import AppLayout from '@/shared/ui/AppLayout.vue'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
+import { useSubjectStore } from '@/modules/content/application/subjectStore'
+import { useTopicStore } from '@/modules/content/application/topicStore'
 import { i18n } from '@/shared/i18n'
 
 // shared/ui may reach a module only through application/ and presentation/, so
@@ -15,6 +17,8 @@ import { i18n } from '@/shared/i18n'
 vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
   authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
 }))
+vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({ subjectRepository: { list: vi.fn() } }))
+vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject: vi.fn() } }))
 
 const vuetify = createVuetify({ components, directives })
 const Stub = defineComponent({ render: () => null })
@@ -56,5 +60,19 @@ describe('AppLayout', () => {
     expect(wrapper.find('.v-navigation-drawer').exists()).toBe(false)
     expect(wrapper.find('.v-bottom-navigation').exists()).toBe(false)
     expect(wrapper.find('[data-testid="sign-out"]').exists()).toBe(true)
+  })
+
+  it('forgets the previous user\'s content when the session ends', async () => {
+    useSessionStore().$patch({ token: 'tok', user: user(false) })
+    useSubjectStore().$patch({ subjects: [{ id: 's-1', name: 'Química', active: true }] })
+    useTopicStore().$patch({ subjectId: 's-1', topics: [{ id: 't-1', name: 'Átomos', description: 'x', position: 1 }] })
+    await render()
+
+    useSessionStore().clear()
+    await nextTick()
+
+    expect(useSubjectStore().subjects).toEqual([])
+    expect(useTopicStore().topics).toEqual([])
+    expect(useTopicStore().subjectId).toBeNull()
   })
 })

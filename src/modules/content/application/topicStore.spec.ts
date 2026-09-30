@@ -98,4 +98,19 @@ describe('topicStore', () => {
     expect(store.topics).toEqual([CELLS])
     expect(store.loading).toBe(false)
   })
+
+  it('reset forgets the subject and drops a response still in flight', async () => {
+    const store = useTopicStore()
+    const slow = deferred<Topic[]>()
+    vi.mocked(topicRepository.listBySubject).mockReturnValueOnce(slow.promise)
+
+    const loading = store.load('s-1')
+    store.reset()
+    slow.resolve([ATOMS])
+    await loading
+
+    expect(store.subjectId).toBeNull()
+    expect(store.topics).toEqual([])
+    expect(store.loading).toBe(false)
+  })
 })

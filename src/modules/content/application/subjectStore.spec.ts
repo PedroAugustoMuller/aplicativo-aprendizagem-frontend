@@ -87,4 +87,47 @@ describe('subjectStore', () => {
     expect(store.nameOf('s-1')).toBe('Química')
     expect(store.nameOf('missing')).toBeNull()
   })
+
+  it('ensureLoaded tries again after a reload fails', async () => {
+    vi.mocked(subjectRepository.list).mockResolvedValueOnce([QUIMICA])
+    vi.mocked(subjectRepository.list).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
+    vi.mocked(subjectRepository.list).mockResolvedValueOnce([QUIMICA])
+
+    const store = useSubjectStore()
+    await store.load()
+    await store.load()
+    await store.ensureLoaded()
+
+    expect(subjectRepository.list).toHaveBeenCalledTimes(3)
+    expect(store.nameOf('s-1')).toBe('Química')
+  })
+
+  it('reset forgets everything, so the next visit fetches again', async () => {
+    vi.mocked(subjectRepository.list).mockResolvedValue([QUIMICA])
+
+    const store = useSubjectStore()
+    await store.load()
+    store.reset()
+
+    expect(store.subjects).toEqual([])
+    expect(store.error).toBeNull()
+    await store.ensureLoaded()
+    expect(subjectRepository.list).toHaveBeenCalledTimes(2)
+  })
+
+  it('reset drops a subjects response still in flight', async () => {
+    let finish: (subjects: typeof QUIMICA[]) => void = () => undefined
+    vi.mocked(subjectRepository.list).mockReturnValueOnce(new Promise((resolve) => {
+      finish = resolve
+    }))
+
+    const store = useSubjectStore()
+    const loading = store.load()
+    store.reset()
+    finish([QUIMICA])
+    await loading
+
+    expect(store.subjects).toEqual([])
+    expect(store.loading).toBe(false)
+  })
 })

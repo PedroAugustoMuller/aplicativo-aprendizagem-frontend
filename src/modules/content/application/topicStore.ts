@@ -41,5 +41,14 @@ export const useTopicStore = defineStore('topics', () => {
     }
   }
 
-  return { subjectId, topics, loading, error, load }
+  function reset(): void {
+    // Bumping the counter makes any in-flight load() discard its result.
+    latest += 1
+    subjectId.value = null
+    topics.value = []
+    loading.value = false
+    error.value = null
+  }
+
+  return { subjectId, topics, loading, error, load, reset }
 })

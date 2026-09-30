@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import { mdiBookOpenVariant, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppTheme } from '@/shared/theme/useAppTheme'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
+import { useSubjectStore } from '@/modules/content/application/subjectStore'
+import { useTopicStore } from '@/modules/content/application/topicStore'
 
 const { mobile } = useDisplay()
 const { t } = useI18n()
@@ -17,6 +19,21 @@ const items = computed(() => [{ title: t('nav.subjects'), icon: mdiBookOpenVaria
 
 // While a temporary password is pending every other page is a 403; offer none.
 const showNav = computed(() => session.hasSession && !session.mustChangePassword)
+
+const subjects = useSubjectStore()
+const topics = useTopicStore()
+
+// Sign-out and an expired token both end here: the next person on this phone
+// must not see (or briefly flash) the previous session's content.
+watch(
+  () => session.hasSession,
+  (hasSession) => {
+    if (!hasSession) {
+      subjects.reset()
+      topics.reset()
+    }
+  },
+)
 
 const toggleTheme = () => setMode(isDark.value ? 'light' : 'dark')
 
