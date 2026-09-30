@@ -5,5 +5,6 @@ import type { TopicListResponse } from '@/modules/content/infrastructure/interfa
 
 export const contentRequests = {
   listSubjects: () => api.get<SubjectListResponse>({ url: contentRoutes.subjects }),
-  listTopics: () => api.get<TopicListResponse>({ url: contentRoutes.topics }),
+  listTopics: (subjectId: string) =>
+    api.get<TopicListResponse>({ url: contentRoutes.subjectTopics, urlParams: { subjectId } }),
 }

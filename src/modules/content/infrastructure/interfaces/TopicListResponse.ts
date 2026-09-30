@@ -1,4 +1,4 @@
-/** Mirrors an element of GET /topics `data`. Network shape, not domain shape. */
+/** Mirrors an element of GET /subjects/{id}/topics `data`. Network shape, not domain shape. */
 export interface TopicResponse {
   id: string
   name: string

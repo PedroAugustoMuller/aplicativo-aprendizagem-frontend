@@ -10,12 +10,20 @@ vi.mock('@/modules/content/infrastructure/client/requests', () => ({
 describe('HttpTopicRepository', () => {
   beforeEach(() => vi.resetAllMocks())
 
+  it('asks for the topics of the given subject', async () => {
+    vi.mocked(contentRequests.listTopics).mockResolvedValue([])
+
+    await topicRepository.listBySubject('s-1')
+
+    expect(contentRequests.listTopics).toHaveBeenCalledWith('s-1')
+  })
+
   it('maps the response into domain topics', async () => {
     vi.mocked(contentRequests.listTopics).mockResolvedValue([
       { id: 't-1', name: 'Átomos', description: 'Estrutura atômica.', position: 2 },
     ])
 
-    await expect(topicRepository.list()).resolves.toEqual([
+    await expect(topicRepository.listBySubject('s-1')).resolves.toEqual([
       { id: 't-1', name: 'Átomos', description: 'Estrutura atômica.', position: 2 },
     ])
   })
@@ -26,20 +34,14 @@ describe('HttpTopicRepository', () => {
       { id: 'a', name: 'A', description: '', position: 1 },
     ])
 
-    const topics = await topicRepository.list()
+    const topics = await topicRepository.listBySubject('s-1')
 
     expect(topics.map((topic) => topic.id)).toEqual(['a', 'b'])
   })
 
-  it('returns an empty array when there are no topics', async () => {
-    vi.mocked(contentRequests.listTopics).mockResolvedValue([])
-
-    await expect(topicRepository.list()).resolves.toEqual([])
-  })
-
   it('lets an ApiError propagate', async () => {
-    vi.mocked(contentRequests.listTopics).mockRejectedValue(new ApiError('auth.unauthenticated', {}, 401))
+    vi.mocked(contentRequests.listTopics).mockRejectedValue(new ApiError('auth.forbidden', {}, 403))
 
-    await expect(topicRepository.list()).rejects.toBeInstanceOf(ApiError)
+    await expect(topicRepository.listBySubject('s-1')).rejects.toBeInstanceOf(ApiError)
   })
 })

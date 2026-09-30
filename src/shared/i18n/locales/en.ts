@@ -26,8 +26,9 @@ export default {
     inactive: 'Inactive',
   },
   topics: {
-    title: 'Chemistry Topics',
+    fallbackTitle: 'Topics',
     empty: 'No topics registered yet.',
+    back: 'Subjects',
   },
   errors: {
     api: {

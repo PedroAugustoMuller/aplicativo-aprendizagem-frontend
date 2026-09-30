@@ -3,10 +3,24 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { topicRepository } from '@/modules/content/infrastructure/HttpTopicRepository'
 import { ApiError } from '@/shared/api/error'
+import type { Topic } from '@/modules/content/domain/Topic'
 
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({
-  topicRepository: { list: vi.fn() },
+  topicRepository: { listBySubject: vi.fn() },
 }))
+
+const ATOMS = { id: 't-1', name: 'Átomos', description: 'x', position: 1 }
+const CELLS = { id: 't-9', name: 'Células', description: 'y', position: 1 }
+
+/** A promise the test resolves by hand, to reorder responses. */
+function deferred<T>() {
+  let resolve: (value: T) => void = () => undefined
+  const promise = new Promise<T>((settle) => {
+    resolve = settle
+  })
+
+  return { promise, resolve }
+}
 
 describe('topicStore', () => {
   beforeEach(() => {
@@ -14,24 +28,24 @@ describe('topicStore', () => {
     vi.resetAllMocks()
   })
 
-  it('loads topics and clears the loading flag', async () => {
-    vi.mocked(topicRepository.list).mockResolvedValue([
-      { id: 't-1', name: 'Átomos', description: 'x', position: 1 },
-    ])
+  it('loads the topics of a subject and clears the loading flag', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS])
 
     const store = useTopicStore()
-    await store.load()
+    await store.load('s-1')
 
-    expect(store.topics).toHaveLength(1)
+    expect(topicRepository.listBySubject).toHaveBeenCalledWith('s-1')
+    expect(store.subjectId).toBe('s-1')
+    expect(store.topics).toEqual([ATOMS])
     expect(store.loading).toBe(false)
     expect(store.error).toBeNull()
   })
 
   it('records the error as an ApiError instead of a message', async () => {
-    vi.mocked(topicRepository.list).mockRejectedValue(new ApiError('api.network_unavailable'))
+    vi.mocked(topicRepository.listBySubject).mockRejectedValue(new ApiError('api.network_unavailable'))
 
     const store = useTopicStore()
-    await store.load()
+    await store.load('s-1')
 
     expect(store.error?.code).toBe('api.network_unavailable')
     expect(store.topics).toEqual([])
@@ -41,32 +55,47 @@ describe('topicStore', () => {
   it('clears a previous error on a successful retry', async () => {
     const store = useTopicStore()
 
-    vi.mocked(topicRepository.list).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
-    await store.load()
+    vi.mocked(topicRepository.listBySubject).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
+    await store.load('s-1')
     expect(store.error).not.toBeNull()
 
-    vi.mocked(topicRepository.list).mockResolvedValue([
-      { id: 't-1', name: 'Átomos', description: 'x', position: 1 },
-    ])
-    await store.load()
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS])
+    await store.load('s-1')
 
     expect(store.error).toBeNull()
-    expect(store.topics).toHaveLength(1)
+    expect(store.topics).toEqual([ATOMS])
   })
 
-  it('resets topics to empty on a failure after a successful load', async () => {
+  it('never shows one subject\'s topics while another subject is loading', async () => {
     const store = useTopicStore()
+    vi.mocked(topicRepository.listBySubject).mockResolvedValueOnce([ATOMS])
+    await store.load('s-1')
 
-    vi.mocked(topicRepository.list).mockResolvedValueOnce([
-      { id: 't-1', name: 'Átomos', description: 'x', position: 1 },
-    ])
-    await store.load()
-    expect(store.topics).toHaveLength(1)
-
-    vi.mocked(topicRepository.list).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
-    await store.load()
+    const pending = deferred<Topic[]>()
+    vi.mocked(topicRepository.listBySubject).mockReturnValueOnce(pending.promise)
+    const loading = store.load('s-2')
 
     expect(store.topics).toEqual([])
-    expect(store.error?.code).toBe('api.network_unavailable')
+    expect(store.subjectId).toBe('s-2')
+
+    pending.resolve([CELLS])
+    await loading
+    expect(store.topics).toEqual([CELLS])
+  })
+
+  it('discards a slow response for a subject the user already left', async () => {
+    const store = useTopicStore()
+    const slow = deferred<Topic[]>()
+    vi.mocked(topicRepository.listBySubject).mockReturnValueOnce(slow.promise)
+    vi.mocked(topicRepository.listBySubject).mockResolvedValueOnce([CELLS])
+
+    const first = store.load('s-1')
+    await store.load('s-2')
+    slow.resolve([ATOMS])
+    await first
+
+    expect(store.subjectId).toBe('s-2')
+    expect(store.topics).toEqual([CELLS])
+    expect(store.loading).toBe(false)
   })
 })

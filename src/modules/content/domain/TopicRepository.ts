@@ -5,5 +5,5 @@ import type { Topic } from '@/modules/content/domain/Topic'
  * interface is why RNF03 will not require rewriting the page.
  */
 export interface TopicRepository {
-  list(): Promise<Topic[]>
+  listBySubject(subjectId: string): Promise<Topic[]>
 }

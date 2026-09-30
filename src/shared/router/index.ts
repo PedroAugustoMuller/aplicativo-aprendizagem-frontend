@@ -19,8 +19,8 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/topics',
-      name: 'topics',
+      path: '/subjects/:subjectId/topics',
+      name: 'subject-topics',
       component: () => import('@/modules/content/presentation/TopicsPage.vue'),
       meta: { requiresAuth: true },
     },

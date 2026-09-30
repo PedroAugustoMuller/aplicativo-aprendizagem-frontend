@@ -26,8 +26,9 @@ export default {
     inactive: 'Inativa',
   },
   topics: {
-    title: 'Conteúdos de Química',
+    fallbackTitle: 'Conteúdos',
     empty: 'Nenhum conteúdo cadastrado ainda.',
+    back: 'Matérias',
   },
   errors: {
     api: {

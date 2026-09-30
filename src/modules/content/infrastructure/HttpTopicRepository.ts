@@ -11,8 +11,8 @@ const toDomain = (response: TopicResponse): Topic => ({
 })
 
 export const topicRepository: TopicRepository = {
-  async list(): Promise<Topic[]> {
-    const response = await contentRequests.listTopics()
+  async listBySubject(subjectId: string): Promise<Topic[]> {
+    const response = await contentRequests.listTopics(subjectId)
 
     // Ordering is a display guarantee we own; do not depend on the server's order.
     return response.map(toDomain).sort((a, b) => a.position - b.position)
