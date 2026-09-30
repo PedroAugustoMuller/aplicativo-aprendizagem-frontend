@@ -49,7 +49,7 @@ describe('resolveNavigation', () => {
 
   it('sends a session away from the login page', () => {
     expect(resolveNavigation(guestRoute, { hasSession: true, expired: false }, '/login'))
-      .toEqual({ path: '/topics' })
+      .toEqual({ path: '/subjects' })
   })
 
   it('lets a visitor without a session reach the login page', () => {

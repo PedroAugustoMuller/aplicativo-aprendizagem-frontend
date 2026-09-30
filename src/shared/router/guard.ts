@@ -37,7 +37,7 @@ export function resolveNavigation(
   }
 
   if (flags.guestOnly && session.hasSession) {
-    return { path: '/topics' }
+    return { path: '/subjects' }
   }
 
   return true

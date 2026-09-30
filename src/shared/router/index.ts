@@ -5,7 +5,7 @@ import { installSessionGuard } from '@/shared/router/guard'
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/topics' },
+    { path: '/', redirect: '/subjects' },
     {
       path: '/login',
       name: 'login',
@@ -13,12 +13,18 @@ export const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: '/subjects',
+      name: 'subjects',
+      component: () => import('@/modules/content/presentation/SubjectsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/topics',
       name: 'topics',
       component: () => import('@/modules/content/presentation/TopicsPage.vue'),
       meta: { requiresAuth: true },
     },
-    { path: '/:pathMatch(.*)*', redirect: '/topics' },
+    { path: '/:pathMatch(.*)*', redirect: '/subjects' },
   ],
 })
 

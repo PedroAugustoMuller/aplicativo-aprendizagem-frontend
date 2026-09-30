@@ -26,7 +26,7 @@ async function submit(): Promise<void> {
     await session.login({ login: identifier.value.trim(), password: password.value })
 
     const redirect = route.query.redirect
-    await router.push(typeof redirect === 'string' ? redirect : '/topics')
+    await router.push(typeof redirect === 'string' ? redirect : '/subjects')
   } catch (failure: unknown) {
     error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
   } finally {

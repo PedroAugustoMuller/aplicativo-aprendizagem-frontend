@@ -106,12 +106,12 @@ describe('LoginPage', () => {
     expect(wrapper.find('[data-testid="login-error"]').text()).toContain('Sem conexão')
   })
 
-  it('navigates to the topics page after a successful login', async () => {
+  it('navigates to the subjects page after a successful login', async () => {
     const store = useSessionStore()
     vi.spyOn(store, 'login').mockResolvedValue()
 
     const wrapper = render()
     await wrapper.find('[data-testid="login-submit"]').trigger('click')
-    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/topics'))
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/subjects'))
   })
 })

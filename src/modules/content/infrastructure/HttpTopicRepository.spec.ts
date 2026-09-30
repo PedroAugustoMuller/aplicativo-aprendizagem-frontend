@@ -4,7 +4,7 @@ import { contentRequests } from '@/modules/content/infrastructure/client/request
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/content/infrastructure/client/requests', () => ({
-  contentRequests: { listTopics: vi.fn() },
+  contentRequests: { listSubjects: vi.fn(), listTopics: vi.fn() },
 }))
 
 describe('HttpTopicRepository', () => {

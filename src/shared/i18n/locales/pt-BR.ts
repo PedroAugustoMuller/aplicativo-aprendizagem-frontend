@@ -4,7 +4,7 @@ export default {
     tagline: 'Estude química respondendo quizzes',
   },
   nav: {
-    topics: 'Conteúdos',
+    subjects: 'Matérias',
     signOut: 'Sair',
     theme: 'Tema',
   },
@@ -19,6 +19,11 @@ export default {
     password: 'Senha',
     submit: 'Entrar',
     signedOut: 'Sua sessão expirou. Entre novamente.',
+  },
+  subjects: {
+    title: 'Matérias',
+    empty: 'Nenhuma matéria disponível ainda.',
+    inactive: 'Inativa',
   },
   topics: {
     title: 'Conteúdos de Química',

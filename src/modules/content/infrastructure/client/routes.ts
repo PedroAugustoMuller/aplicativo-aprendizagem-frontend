@@ -1,4 +1,4 @@
 export const contentRoutes = {
+  subjects: '/subjects',
   topics: '/topics',
-  topic: '/topics/:id',
 } as const

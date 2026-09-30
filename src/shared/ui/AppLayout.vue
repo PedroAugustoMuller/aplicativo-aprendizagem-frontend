@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useDisplay } from 'vuetify'
-import { mdiFlaskOutline, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
+import { mdiBookOpenVariant, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppTheme } from '@/shared/theme/useAppTheme'
@@ -13,7 +13,7 @@ const router = useRouter()
 const session = useSessionStore()
 const { isDark, setMode } = useAppTheme()
 
-const items = computed(() => [{ title: t('nav.topics'), icon: mdiFlaskOutline, to: '/topics' }])
+const items = computed(() => [{ title: t('nav.subjects'), icon: mdiBookOpenVariant, to: '/subjects' }])
 
 const toggleTheme = () => setMode(isDark.value ? 'light' : 'dark')
 

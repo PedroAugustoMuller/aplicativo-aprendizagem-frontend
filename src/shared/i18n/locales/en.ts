@@ -4,7 +4,7 @@ export default {
     tagline: 'Study chemistry by answering quizzes',
   },
   nav: {
-    topics: 'Topics',
+    subjects: 'Subjects',
     signOut: 'Sign out',
     theme: 'Theme',
   },
@@ -19,6 +19,11 @@ export default {
     password: 'Password',
     submit: 'Sign in',
     signedOut: 'Your session expired. Sign in again.',
+  },
+  subjects: {
+    title: 'Subjects',
+    empty: 'No subjects available yet.',
+    inactive: 'Inactive',
   },
   topics: {
     title: 'Chemistry Topics',
