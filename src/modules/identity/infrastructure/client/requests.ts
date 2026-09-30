@@ -6,7 +6,7 @@ import type {
 } from '@/modules/identity/infrastructure/interfaces/LoginResponse'
 
 export const identityRequests = {
-  login: (data: { email: string; password: string }) =>
+  login: (data: { login: string; password: string }) =>
     api.post<LoginResponse>({ url: identityRoutes.login, data }),
 
   logout: () => api.post<null>({ url: identityRoutes.logout }),

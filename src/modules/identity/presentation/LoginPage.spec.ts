@@ -38,12 +38,33 @@ describe('LoginPage', () => {
     const login = vi.spyOn(store, 'login').mockResolvedValue()
 
     const wrapper = render()
-    await wrapper.find('[data-testid="login-email"] input').setValue('ana@escola.br')
+    await wrapper.find('[data-testid="login-identifier"] input').setValue('ana@escola.br')
     await wrapper.find('[data-testid="login-password"] input').setValue('password')
     await wrapper.find('[data-testid="login-submit"]').trigger('click')
     await vi.waitFor(() => expect(login).toHaveBeenCalled())
 
-    expect(login).toHaveBeenCalledWith({ email: 'ana@escola.br', password: 'password' })
+    expect(login).toHaveBeenCalledWith({ login: 'ana@escola.br', password: 'password' })
+  })
+
+  it('accepts a student username and sends it trimmed', async () => {
+    const store = useSessionStore()
+    const login = vi.spyOn(store, 'login').mockResolvedValue()
+
+    const wrapper = render()
+    await wrapper.find('[data-testid="login-identifier"] input').setValue('  carla.dias ')
+    await wrapper.find('[data-testid="login-password"] input').setValue('password')
+    await wrapper.find('[data-testid="login-submit"]').trigger('click')
+    await vi.waitFor(() => expect(login).toHaveBeenCalled())
+
+    expect(login).toHaveBeenCalledWith({ login: 'carla.dias', password: 'password' })
+  })
+
+  it('does not let the browser or phone keyboard mangle a username', () => {
+    const input = render().find('[data-testid="login-identifier"] input')
+
+    expect(input.attributes('type')).toBe('text')
+    expect(input.attributes('autocomplete')).toBe('username')
+    expect(input.attributes('autocapitalize')).toBe('off')
   })
 
   it('shows the translated message for a rejected login', async () => {
@@ -51,7 +72,7 @@ describe('LoginPage', () => {
     vi.spyOn(store, 'login').mockRejectedValue(new ApiError('identity.invalid_credentials', {}, 401))
 
     const wrapper = render()
-    await wrapper.find('[data-testid="login-email"] input').setValue('ana@escola.br')
+    await wrapper.find('[data-testid="login-identifier"] input').setValue('ana@escola.br')
     await wrapper.find('[data-testid="login-password"] input').setValue('wrong')
     await wrapper.find('[data-testid="login-submit"]').trigger('click')
     await vi.waitFor(() => expect(wrapper.find('[data-testid="login-error"]').exists()).toBe(true))

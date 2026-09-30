@@ -28,11 +28,11 @@ export const useSessionStore = defineStore('session', () => {
   const isAuthenticated = computed(() => token.value !== null && user.value !== null)
 
   async function login(credentials: Credentials): Promise<void> {
-    const session = await authRepository.login(credentials)
+    const { token: issued, ...authenticated } = await authRepository.login(credentials)
 
-    token.value = session.token
-    user.value = { userId: session.userId, name: session.name, email: session.email }
-    tokenStorage.write(session.token)
+    token.value = issued
+    user.value = authenticated
+    tokenStorage.write(issued)
   }
 
   function clear(): void {

@@ -15,7 +15,7 @@ export default {
   },
   auth: {
     title: 'Entrar',
-    email: 'E-mail',
+    login: 'E-mail ou usuário',
     password: 'Senha',
     submit: 'Entrar',
     signedOut: 'Sua sessão expirou. Entre novamente.',

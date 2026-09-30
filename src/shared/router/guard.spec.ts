@@ -27,7 +27,7 @@ const tokenStorage = {
   clear: () => localStorage.removeItem(TOKEN_KEY),
 }
 
-const ANA = { userId: 'u-1', name: 'Ana', email: 'ana@escola.br' }
+const ANA = { userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false } as const
 
 describe('resolveNavigation', () => {
   const protectedRoute = { requiresAuth: true, guestOnly: false }

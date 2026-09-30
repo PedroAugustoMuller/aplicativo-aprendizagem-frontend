@@ -9,6 +9,16 @@ vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
   authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn() },
 }))
 
+const ANA = {
+  userId: 'u-1',
+  name: 'Ana',
+  login: 'ana@escola.br',
+  role: 'admin',
+  mustChangePassword: false,
+} as const
+const ANA_SESSION = { ...ANA, token: 'tok' }
+const ANA_CREDENTIALS = { login: 'ana@escola.br', password: 'password' }
+
 describe('sessionStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -21,16 +31,25 @@ describe('sessionStore', () => {
   })
 
   it('stores the session and persists the token on login', async () => {
-    vi.mocked(authRepository.login).mockResolvedValue({
-      userId: 'u-1', name: 'Ana', email: 'ana@escola.br', token: 'tok',
-    })
+    vi.mocked(authRepository.login).mockResolvedValue(ANA_SESSION)
 
     const store = useSessionStore()
-    await store.login({ email: 'ana@escola.br', password: 'password' })
+    await store.login(ANA_CREDENTIALS)
 
     expect(store.isAuthenticated).toBe(true)
     expect(store.user?.name).toBe('Ana')
     expect(tokenStorage.read()).toBe('tok')
+  })
+
+  it('keeps the full user, but not the token, as the user', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue(ANA_SESSION)
+
+    const store = useSessionStore()
+    await store.login(ANA_CREDENTIALS)
+
+    expect(store.user).toEqual(ANA)
+    expect(store.user).not.toHaveProperty('token')
+    expect(store.token).toBe('tok')
   })
 
   it('leaves the store clean when login fails', async () => {
@@ -38,7 +57,7 @@ describe('sessionStore', () => {
 
     const store = useSessionStore()
 
-    await expect(store.login({ email: 'ana@escola.br', password: 'wrong' })).rejects.toBeInstanceOf(ApiError)
+    await expect(store.login({ login: 'ana@escola.br', password: 'wrong' })).rejects.toBeInstanceOf(ApiError)
     expect(store.isAuthenticated).toBe(false)
     expect(store.token).toBeNull()
     expect(store.user).toBeNull()
@@ -46,13 +65,11 @@ describe('sessionStore', () => {
   })
 
   it('clears everything on logout', async () => {
-    vi.mocked(authRepository.login).mockResolvedValue({
-      userId: 'u-1', name: 'Ana', email: 'ana@escola.br', token: 'tok',
-    })
+    vi.mocked(authRepository.login).mockResolvedValue(ANA_SESSION)
     vi.mocked(authRepository.logout).mockResolvedValue(undefined)
 
     const store = useSessionStore()
-    await store.login({ email: 'ana@escola.br', password: 'password' })
+    await store.login(ANA_CREDENTIALS)
     await store.logout()
 
     expect(store.isAuthenticated).toBe(false)
@@ -60,13 +77,11 @@ describe('sessionStore', () => {
   })
 
   it('clears local state even when the logout request fails', async () => {
-    vi.mocked(authRepository.login).mockResolvedValue({
-      userId: 'u-1', name: 'Ana', email: 'ana@escola.br', token: 'tok',
-    })
+    vi.mocked(authRepository.login).mockResolvedValue(ANA_SESSION)
     vi.mocked(authRepository.logout).mockRejectedValue(new ApiError('api.network_unavailable'))
 
     const store = useSessionStore()
-    await store.login({ email: 'ana@escola.br', password: 'password' })
+    await store.login(ANA_CREDENTIALS)
     await store.logout()
 
     expect(store.isAuthenticated).toBe(false)
@@ -75,9 +90,7 @@ describe('sessionStore', () => {
 
   it('restores a persisted token on boot', async () => {
     tokenStorage.write('persisted')
-    vi.mocked(authRepository.currentUser).mockResolvedValue({
-      userId: 'u-9', name: 'Ana', email: 'ana@escola.br',
-    })
+    vi.mocked(authRepository.currentUser).mockResolvedValue({ ...ANA, userId: 'u-9' })
 
     const store = useSessionStore()
     await store.restore()
@@ -130,18 +143,14 @@ describe('sessionStore', () => {
 
   it('reports a successful restore', async () => {
     tokenStorage.write('persisted')
-    vi.mocked(authRepository.currentUser).mockResolvedValue({
-      userId: 'u-9', name: 'Ana', email: 'ana@escola.br',
-    })
+    vi.mocked(authRepository.currentUser).mockResolvedValue({ ...ANA, userId: 'u-9' })
 
     await expect(useSessionStore().restore()).resolves.toBe('restored')
   })
 
   it('coalesces concurrent restore() calls into a single request', async () => {
     tokenStorage.write('persisted')
-    vi.mocked(authRepository.currentUser).mockResolvedValue({
-      userId: 'u-9', name: 'Ana', email: 'ana@escola.br',
-    })
+    vi.mocked(authRepository.currentUser).mockResolvedValue({ ...ANA, userId: 'u-9' })
 
     const store = useSessionStore()
     await Promise.all([store.restore(), store.restore()])
