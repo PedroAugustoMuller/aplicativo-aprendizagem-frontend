@@ -130,4 +130,31 @@ describe('subjectStore', () => {
     expect(store.subjects).toEqual([])
     expect(store.loading).toBe(false)
   })
+
+  it('a load from before reset cannot overwrite the load that followed it', async () => {
+    let finishOld: (subjects: typeof QUIMICA[]) => void = () => undefined
+    let finishNew: (subjects: typeof QUIMICA[]) => void = () => undefined
+    const BIOLOGIA = { id: 's-2', name: 'Biologia', active: true }
+    vi.mocked(subjectRepository.list)
+      .mockReturnValueOnce(new Promise((resolve) => {
+        finishOld = resolve
+      }))
+      .mockReturnValueOnce(new Promise((resolve) => {
+        finishNew = resolve
+      }))
+
+    const store = useSubjectStore()
+    const old = store.load()
+    store.reset()
+    const next = store.load()
+
+    finishOld([QUIMICA])
+    await old
+    expect(store.loading).toBe(true)
+
+    finishNew([BIOLOGIA])
+    await next
+    expect(store.subjects).toEqual([BIOLOGIA])
+    expect(store.loading).toBe(false)
+  })
 })
