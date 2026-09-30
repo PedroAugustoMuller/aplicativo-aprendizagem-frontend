@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
+import { safeRedirect } from '@/shared/router/redirect'
 
 // Mirrors the backend rule (ChangePasswordRequest: min:8). The server still decides.
 const MIN_LENGTH = 8
@@ -58,8 +59,7 @@ async function submit(): Promise<void> {
   try {
     await session.changePassword({ currentPassword: current.value, newPassword: next.value })
 
-    const redirect = route.query.redirect
-    await router.push(typeof redirect === 'string' ? redirect : '/subjects')
+    await router.push(safeRedirect(route.query.redirect) ?? '/subjects')
   } catch (failure: unknown) {
     error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
   } finally {

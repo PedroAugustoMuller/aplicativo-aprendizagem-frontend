@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
+import { safeRedirect } from '@/shared/router/redirect'
 
 const { t, te } = useI18n()
 const router = useRouter()
@@ -25,8 +26,7 @@ async function submit(): Promise<void> {
   try {
     await session.login({ login: identifier.value.trim(), password: password.value })
 
-    const redirect = route.query.redirect
-    const destination = typeof redirect === 'string' ? redirect : null
+    const destination = safeRedirect(route.query.redirect)
 
     if (session.mustChangePassword) {
       await router.push({ path: '/change-password', query: destination === null ? {} : { redirect: destination } })

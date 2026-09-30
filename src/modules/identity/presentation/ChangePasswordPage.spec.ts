@@ -146,4 +146,16 @@ describe('ChangePasswordPage', () => {
 
     expect(change).toHaveBeenCalledTimes(1)
   })
+
+  it('never sends the user back to the change page itself', async () => {
+    route.query = { redirect: '/change-password' }
+    vi.spyOn(useSessionStore(), 'changePassword').mockResolvedValue()
+
+    const wrapper = render()
+    await fill(wrapper, 'Temp2345', 'nova-senha-1', 'nova-senha-1')
+    await wrapper.find('[data-testid="password-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith('/subjects')
+  })
 })

@@ -149,4 +149,31 @@ describe('LoginPage', () => {
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith({ path: '/change-password', query: {} }))
   })
+
+  it('ignores a redirect back to a page the user is finishing', async () => {
+    route.query = { redirect: '/change-password' }
+    const store = useSessionStore()
+    vi.spyOn(store, 'login').mockResolvedValue()
+
+    const wrapper = render()
+    await wrapper.find('[data-testid="login-submit"]').trigger('click')
+
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/subjects'))
+  })
+
+  it('does not carry an unsafe redirect into the password change', async () => {
+    route.query = { redirect: '//evil.com' }
+    const store = useSessionStore()
+    vi.spyOn(store, 'login').mockImplementation(async () => {
+      store.$patch({
+        token: 'tok',
+        user: { userId: 'u-13', name: 'Diego', login: 'diego.souza', role: 'student', mustChangePassword: true },
+      })
+    })
+
+    const wrapper = render()
+    await wrapper.find('[data-testid="login-submit"]').trigger('click')
+
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith({ path: '/change-password', query: {} }))
+  })
 })
