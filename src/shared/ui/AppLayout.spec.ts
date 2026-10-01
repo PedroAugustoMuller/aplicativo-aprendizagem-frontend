@@ -35,8 +35,8 @@ async function render() {
   return wrapper
 }
 
-const user = (mustChangePassword: boolean) => ({
-  userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword,
+const user = (mustChangePassword: boolean, role: 'admin' | 'teacher' | 'student' = 'admin') => ({
+  userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role, mustChangePassword,
 }) as const
 
 describe('AppLayout', () => {
@@ -90,5 +90,18 @@ describe('AppLayout', () => {
     await flushPromises()
 
     expect(await storage.keys()).toEqual([])
+  })
+
+  it.each([
+    ['admin', ['/subjects', '/classrooms', '/teachers']],
+    ['teacher', ['/subjects', '/classrooms']],
+    ['student', ['/subjects']],
+  ] as const)('shows a %s only their areas', async (role, paths) => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, role) })
+
+    const wrapper = await render()
+    const hrefs = wrapper.findAll('.v-navigation-drawer a, .v-bottom-navigation a').map((link) => link.attributes('href'))
+
+    expect([...new Set(hrefs)]).toEqual(paths)
   })
 })

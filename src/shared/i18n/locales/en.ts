@@ -5,6 +5,8 @@ export default {
   },
   nav: {
     subjects: 'Subjects',
+    classrooms: 'Classes',
+    teachers: 'Teachers',
     signOut: 'Sign out',
     theme: 'Theme',
   },

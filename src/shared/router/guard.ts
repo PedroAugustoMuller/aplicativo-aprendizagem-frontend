@@ -6,6 +6,8 @@ export interface RouteFlags {
   guestOnly: boolean
   /** The change-password page itself: reachable while a change is pending. */
   passwordChange: boolean
+  /** Roles allowed to open the route; null = any signed-in user. */
+  roles: readonly string[] | null
 }
 
 export interface SessionState {
@@ -15,6 +17,8 @@ export interface SessionState {
   expired: boolean
   /** The server said this user still has a temporary password. */
   mustChangePassword: boolean
+  /** The confirmed user's role; null while unknown. */
+  role: string | null
 }
 
 /** The slice of the session store the guard and the 401 handler need. */
@@ -25,6 +29,7 @@ export interface GuardedSession {
   readonly hasSession: boolean
   /** False while the user is unknown; the guard can only enforce what it knows. */
   readonly mustChangePassword: boolean
+  readonly role: string | null
   restore(): Promise<RestoreOutcome>
   clear(): void
 }
@@ -52,6 +57,12 @@ export function resolveNavigation(
     if (flags.guestOnly) {
       return { path: '/change-password' }
     }
+  }
+
+  // Convenience, not security: the backend answers 403 anyway. While the user is
+  // unknown (offline reload) the rule cannot run and the page shows that 403.
+  if (flags.requiresAuth && flags.roles !== null && session.role !== null && !flags.roles.includes(session.role)) {
+    return { path: '/subjects' }
   }
 
   if (flags.guestOnly && session.hasSession) {
@@ -97,13 +108,18 @@ export function installSessionGuard(router: Router, getSession: () => GuardedSes
       expired = (await session.restore()) === 'rejected'
     }
 
+    const roles = Array.isArray(to.meta.roles)
+      ? to.meta.roles.filter((role): role is string => typeof role === 'string')
+      : null
+
     return resolveNavigation(
       {
         requiresAuth: to.meta.requiresAuth === true,
         guestOnly: to.meta.guestOnly === true,
         passwordChange: to.meta.passwordChange === true,
+        roles,
       },
-      { hasSession: session.hasSession, expired, mustChangePassword: session.mustChangePassword },
+      { hasSession: session.hasSession, expired, mustChangePassword: session.mustChangePassword, role: session.role },
       to.fullPath,
     )
   })

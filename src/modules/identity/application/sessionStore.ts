@@ -33,6 +33,7 @@ export const useSessionStore = defineStore('session', () => {
   // The confirmed user, else the one remembered from the last confirmation. Used
   // for offline reads and the menu only; the guard keeps relying on `user`.
   const knownUser = computed(() => user.value ?? rememberedUser.value)
+  const role = computed(() => user.value?.role ?? null)
 
   function remember(next: AuthenticatedUser): void {
     user.value = next
@@ -119,6 +120,7 @@ export const useSessionStore = defineStore('session', () => {
     isAuthenticated,
     mustChangePassword,
     knownUser,
+    role,
     login,
     logout,
     clear,

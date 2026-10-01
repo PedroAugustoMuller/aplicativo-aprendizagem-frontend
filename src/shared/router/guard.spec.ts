@@ -30,28 +30,28 @@ const tokenStorage = {
 const ANA = { userId: 'u-1', name: 'Ana', login: 'ana@escola.br', role: 'admin', mustChangePassword: false } as const
 
 describe('resolveNavigation', () => {
-  const protectedRoute = { requiresAuth: true, guestOnly: false, passwordChange: false }
-  const guestRoute = { requiresAuth: false, guestOnly: true, passwordChange: false }
-  const passwordRoute = { requiresAuth: true, guestOnly: false, passwordChange: true }
-  const signedIn = { hasSession: true, expired: false, mustChangePassword: false }
-  const pending = { hasSession: true, expired: false, mustChangePassword: true }
+  const protectedRoute = { requiresAuth: true, guestOnly: false, passwordChange: false, roles: null }
+  const guestRoute = { requiresAuth: false, guestOnly: true, passwordChange: false, roles: null }
+  const passwordRoute = { requiresAuth: true, guestOnly: false, passwordChange: true, roles: null }
+  const signedIn = { hasSession: true, expired: false, mustChangePassword: false, role: null }
+  const pending = { hasSession: true, expired: false, mustChangePassword: true, role: null }
 
   it('sends a visitor without a session from a protected route to login', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: false, mustChangePassword: false }, '/topics'))
+    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: false, mustChangePassword: false, role: null }, '/topics'))
       .toEqual({ path: '/login', query: { redirect: '/topics' } })
   })
 
   it('tells the login page why when the session was just rejected', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: true, mustChangePassword: false }, '/topics'))
+    expect(resolveNavigation(protectedRoute, { hasSession: false, expired: true, mustChangePassword: false, role: null }, '/topics'))
       .toEqual({ path: '/login', query: { redirect: '/topics', reason: 'expired' } })
   })
 
   it('lets a session through a protected route', () => {
-    expect(resolveNavigation(protectedRoute, { hasSession: true, expired: false, mustChangePassword: false }, '/topics')).toBe(true)
+    expect(resolveNavigation(protectedRoute, { hasSession: true, expired: false, mustChangePassword: false, role: null }, '/topics')).toBe(true)
   })
 
   it('sends a session away from the login page', () => {
-    expect(resolveNavigation(guestRoute, { hasSession: true, expired: false, mustChangePassword: false }, '/login'))
+    expect(resolveNavigation(guestRoute, { hasSession: true, expired: false, mustChangePassword: false, role: null }, '/login'))
       .toEqual({ path: '/subjects' })
   })
 
@@ -73,7 +73,21 @@ describe('resolveNavigation', () => {
   })
 
   it('lets a visitor without a session reach the login page', () => {
-    expect(resolveNavigation(guestRoute, { hasSession: false, expired: false, mustChangePassword: false }, '/login')).toBe(true)
+    expect(resolveNavigation(guestRoute, { hasSession: false, expired: false, mustChangePassword: false, role: null }, '/login')).toBe(true)
+  })
+
+  const adminRoute = { requiresAuth: true, guestOnly: false, passwordChange: false, roles: ['admin'] }
+
+  it('sends a user whose role may not open a page to the subjects', () => {
+    expect(resolveNavigation(adminRoute, { ...signedIn, role: 'teacher' }, '/teachers')).toEqual({ path: '/subjects' })
+  })
+
+  it('lets an allowed role through', () => {
+    expect(resolveNavigation(adminRoute, { ...signedIn, role: 'admin' }, '/teachers')).toBe(true)
+  })
+
+  it('lets a not-yet-known user through; the server still answers 403', () => {
+    expect(resolveNavigation(adminRoute, signedIn, '/teachers')).toBe(true)
   })
 })
 
@@ -110,6 +124,8 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
         { path: '/login', component: Stub, meta: { guestOnly: true } },
         { path: '/topics', component: Stub, meta: { requiresAuth: true } },
         { path: '/change-password', component: Stub, meta: { requiresAuth: true, passwordChange: true } },
+        { path: '/subjects', component: Stub, meta: { requiresAuth: true } },
+        { path: '/teachers', component: Stub, meta: { requiresAuth: true, roles: ['admin'] } },
       ],
     })
     installSessionGuard(router, () => useSessionStore())
@@ -196,5 +212,14 @@ describe('session guard and onUnauthorized, wired to a real router', () => {
     expect(router.currentRoute.value.path).toBe('/login')
     expect(router.currentRoute.value.query).toEqual({ redirect: '/topics' })
     expect(currentUser).not.toHaveBeenCalled()
+  })
+
+  it('keeps a restored student out of an admin page', async () => {
+    tokenStorage.write('valid')
+    currentUser.mockResolvedValue({ ...ANA, role: 'student' })
+
+    await router.push('/teachers')
+
+    expect(router.currentRoute.value.path).toBe('/subjects')
   })
 })

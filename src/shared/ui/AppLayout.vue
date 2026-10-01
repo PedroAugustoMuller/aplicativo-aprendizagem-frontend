@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import { mdiBookOpenVariant, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
+import { mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppTheme } from '@/shared/theme/useAppTheme'
@@ -9,6 +9,7 @@ import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { clearOfflineData } from '@/shared/offline/readThrough'
+import { navItemsFor } from '@/shared/ui/navigation'
 
 const { mobile } = useDisplay()
 const { t } = useI18n()
@@ -16,7 +17,14 @@ const router = useRouter()
 const session = useSessionStore()
 const { isDark, setMode } = useAppTheme()
 
-const items = computed(() => [{ title: t('nav.subjects'), icon: mdiBookOpenVariant, to: '/subjects' }])
+// The remembered role keeps the right menu after an offline reload.
+const items = computed(() =>
+  navItemsFor(session.knownUser?.role ?? null).map((item) => ({
+    title: t(`nav.${item.key}`),
+    icon: item.icon,
+    to: item.to,
+  })),
+)
 
 // While a temporary password is pending every other page is a 403; offer none.
 const showNav = computed(() => session.hasSession && !session.mustChangePassword)

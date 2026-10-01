@@ -5,6 +5,8 @@ export default {
   },
   nav: {
     subjects: 'Matérias',
+    classrooms: 'Turmas',
+    teachers: 'Professores',
     signOut: 'Sair',
     theme: 'Tema',
   },
