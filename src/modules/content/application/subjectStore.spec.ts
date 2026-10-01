@@ -7,7 +7,7 @@ import { configureOffline } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
 
 vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
-  subjectRepository: { list: vi.fn() },
+  subjectRepository: { list: vi.fn(), create: vi.fn(), rename: vi.fn(), deactivate: vi.fn() },
 }))
 
 const QUIMICA = { id: 's-1', name: 'Química', active: true }
@@ -174,5 +174,24 @@ describe('subjectStore', () => {
     expect(store.subjects).toEqual([QUIMICA])
     expect(store.savedAt).toBeInstanceOf(Date)
     expect(store.error).toBeNull()
+  })
+
+  it('reloads the list after a change', async () => {
+    vi.mocked(subjectRepository.list).mockResolvedValue([QUIMICA])
+    vi.mocked(subjectRepository.create).mockResolvedValue({ id: 's-9', name: 'Física', active: true })
+
+    const store = useSubjectStore()
+    await store.create({ id: 's-9', name: 'Física' })
+
+    expect(subjectRepository.create).toHaveBeenCalledWith({ id: 's-9', name: 'Física' })
+    expect(subjectRepository.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('lets a failed change reach the caller', async () => {
+    vi.mocked(subjectRepository.rename).mockRejectedValue(new ApiError('content.subject.name_already_taken', {}, 409))
+
+    await expect(useSubjectStore().rename('s-1', 'Biologia')).rejects.toMatchObject({
+      code: 'content.subject.name_already_taken',
+    })
   })
 })

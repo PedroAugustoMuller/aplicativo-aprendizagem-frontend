@@ -39,6 +39,12 @@ export default {
     title: 'Subjects',
     empty: 'No subjects available yet.',
     inactive: 'Inactive',
+    create: 'New subject',
+    rename: 'Rename',
+    deactivate: 'Deactivate',
+    name: 'Subject name',
+    deactivateTitle: 'Deactivate {name}?',
+    deactivateMessage: 'Students will no longer see it. Classes and content are kept.',
   },
   topics: {
     fallbackTitle: 'Topics',

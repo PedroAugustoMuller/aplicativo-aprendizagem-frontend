@@ -10,12 +10,18 @@ import SubjectsPage from '@/modules/content/presentation/SubjectsPage.vue'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
 import { configureOffline } from '@/shared/offline/readThrough'
+import { configureViewer } from '@/shared/auth/viewer'
 import { createMemoryStorage, type OfflineStorage } from '@/shared/offline/storage'
 
-const { list } = vi.hoisted(() => ({ list: vi.fn() }))
+const { list, create, rename, deactivate } = vi.hoisted(() => ({
+  list: vi.fn(),
+  create: vi.fn(),
+  rename: vi.fn(),
+  deactivate: vi.fn(),
+}))
 
 vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
-  subjectRepository: { list },
+  subjectRepository: { list, create, rename, deactivate },
 }))
 
 const vuetify = createVuetify({ components, directives })
@@ -44,6 +50,8 @@ describe('SubjectsPage', () => {
     vi.resetAllMocks()
     storage = createMemoryStorage()
     configureOffline({ userId: () => 'u-1', storage })
+    configureViewer(() => 'admin')
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
   })
 
   it('lists the subjects, each linking to its topics', async () => {
@@ -98,5 +106,59 @@ describe('SubjectsPage', () => {
 
     expect(wrapper.find('[data-testid="subject-s-1"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="offline-banner"]').text()).toContain('12:40')
+  })
+
+  it('lets an admin create a subject, keeping the same id when retrying', async () => {
+    list.mockResolvedValue([])
+    create.mockRejectedValueOnce(new ApiError('api.request_timeout'))
+    create.mockResolvedValueOnce({ id: 'x', name: 'Física', active: true })
+
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="subjects-create"]').trigger('click')
+    await wrapper.find('[data-testid="subject-form-name"] input').setValue(' Física ')
+    await wrapper.find('[data-testid="subject-form-save"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="subject-form-error"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="subject-form-save"]').trigger('click')
+    await flushPromises()
+
+    expect(create).toHaveBeenCalledTimes(2)
+    expect(create.mock.calls[0]?.[0]).toEqual(create.mock.calls[1]?.[0])
+    expect(create.mock.calls[0]?.[0]).toMatchObject({ name: 'Física' })
+    expect(wrapper.find('[data-testid="subject-form"]').exists()).toBe(false)
+  })
+
+  it('asks before deactivating', async () => {
+    list.mockResolvedValue([{ id: 's-1', name: 'Química', active: true }])
+    deactivate.mockResolvedValue({ id: 's-1', name: 'Química', active: false })
+
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="subject-deactivate-s-1"]').trigger('click')
+    expect(deactivate).not.toHaveBeenCalled()
+    await wrapper.find('[data-testid="subject-deactivate-dialog-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(deactivate).toHaveBeenCalledWith('s-1')
+  })
+
+  it('hides management from teachers and students', async () => {
+    configureViewer(() => 'teacher')
+    list.mockResolvedValue([{ id: 's-1', name: 'Química', active: true }])
+
+    const { wrapper } = await render()
+
+    expect(wrapper.find('[data-testid="subjects-create"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="subject-rename-s-1"]').exists()).toBe(false)
+  })
+
+  it('disables changes while offline', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+    list.mockResolvedValue([{ id: 's-1', name: 'Química', active: true }])
+
+    const { wrapper } = await render()
+
+    expect(wrapper.find('[data-testid="subjects-create"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-testid="subject-rename-s-1"]').attributes('disabled')).toBeDefined()
   })
 })

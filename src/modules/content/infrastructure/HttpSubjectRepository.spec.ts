@@ -4,7 +4,13 @@ import { contentRequests } from '@/modules/content/infrastructure/client/request
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/content/infrastructure/client/requests', () => ({
-  contentRequests: { listSubjects: vi.fn(), listTopics: vi.fn() },
+  contentRequests: {
+    listSubjects: vi.fn(),
+    listTopics: vi.fn(),
+    createSubject: vi.fn(),
+    renameSubject: vi.fn(),
+    deactivateSubject: vi.fn(),
+  },
 }))
 
 describe('HttpSubjectRepository', () => {
@@ -32,5 +38,23 @@ describe('HttpSubjectRepository', () => {
     vi.mocked(contentRequests.listSubjects).mockRejectedValue(new ApiError('api.network_unavailable'))
 
     await expect(subjectRepository.list()).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('creates a subject under the id the client chose', async () => {
+    vi.mocked(contentRequests.createSubject).mockResolvedValue({ id: 's-9', name: 'Física', active: true })
+
+    await expect(subjectRepository.create({ id: 's-9', name: 'Física' }))
+      .resolves.toEqual({ id: 's-9', name: 'Física', active: true })
+    expect(contentRequests.createSubject).toHaveBeenCalledWith({ id: 's-9', name: 'Física' })
+  })
+
+  it('renames and deactivates by id', async () => {
+    vi.mocked(contentRequests.renameSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: true })
+    vi.mocked(contentRequests.deactivateSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: false })
+
+    await subjectRepository.rename('s-1', 'Química I')
+    await expect(subjectRepository.deactivate('s-1')).resolves.toMatchObject({ active: false })
+    expect(contentRequests.renameSubject).toHaveBeenCalledWith('s-1', 'Química I')
+    expect(contentRequests.deactivateSubject).toHaveBeenCalledWith('s-1')
   })
 })

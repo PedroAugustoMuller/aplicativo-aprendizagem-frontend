@@ -39,6 +39,12 @@ export default {
     title: 'Matérias',
     empty: 'Nenhuma matéria disponível ainda.',
     inactive: 'Inativa',
+    create: 'Nova matéria',
+    rename: 'Renomear',
+    deactivate: 'Desativar',
+    name: 'Nome da matéria',
+    deactivateTitle: 'Desativar {name}?',
+    deactivateMessage: 'Ela deixa de aparecer para os alunos. Turmas e conteúdos são mantidos.',
   },
   topics: {
     fallbackTitle: 'Conteúdos',

@@ -16,4 +16,16 @@ export const subjectRepository: SubjectRepository = {
     // Alphabetical order is a display guarantee we own, accents included.
     return response.map(toDomain).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
   },
+
+  async create(input: { id: string; name: string }): Promise<Subject> {
+    return toDomain(await contentRequests.createSubject({ id: input.id, name: input.name }))
+  },
+
+  async rename(id: string, name: string): Promise<Subject> {
+    return toDomain(await contentRequests.renameSubject(id, name))
+  },
+
+  async deactivate(id: string): Promise<Subject> {
+    return toDomain(await contentRequests.deactivateSubject(id))
+  },
 }

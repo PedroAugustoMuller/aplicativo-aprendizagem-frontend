@@ -59,6 +59,22 @@ export const useSubjectStore = defineStore('subjects', () => {
     }
   }
 
+  // Writes need a connection and let their ApiError reach the dialog that asked.
+  async function create(input: { id: string; name: string }): Promise<void> {
+    await subjectRepository.create(input)
+    await load()
+  }
+
+  async function rename(id: string, name: string): Promise<void> {
+    await subjectRepository.rename(id, name)
+    await load()
+  }
+
+  async function deactivate(id: string): Promise<void> {
+    await subjectRepository.deactivate(id)
+    await load()
+  }
+
   function reset(): void {
     generation += 1
     inFlight = null
@@ -73,5 +89,5 @@ export const useSubjectStore = defineStore('subjects', () => {
     return subjects.value.find((subject) => subject.id === id)?.name ?? null
   }
 
-  return { subjects, savedAt, loading, error, load, ensureLoaded, nameOf, reset }
+  return { subjects, savedAt, loading, error, load, ensureLoaded, nameOf, reset, create, rename, deactivate }
 })
