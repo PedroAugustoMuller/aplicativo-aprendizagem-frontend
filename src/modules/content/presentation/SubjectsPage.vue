@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
+import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
 
 const { t } = useI18n()
 const store = useSubjectStore()
@@ -16,6 +17,8 @@ onMounted(() => void store.load())
     <h1 class="text-h5 mb-4">
       {{ t('subjects.title') }}
     </h1>
+
+    <OfflineBanner :saved-at="store.savedAt" />
 
     <v-progress-linear
       v-if="store.loading"

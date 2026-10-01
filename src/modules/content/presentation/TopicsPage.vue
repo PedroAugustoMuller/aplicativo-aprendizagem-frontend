@@ -6,6 +6,7 @@ import { mdiArrowLeft } from '@mdi/js'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
+import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
 import TopicCard from '@/modules/content/presentation/TopicCard.vue'
 
 const { t } = useI18n()
@@ -51,6 +52,8 @@ watch(
     >
       {{ title }}
     </h1>
+
+    <OfflineBanner :saved-at="store.savedAt" />
 
     <v-progress-linear
       v-if="store.loading"

@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { topicRepository } from '@/modules/content/infrastructure/HttpTopicRepository'
 import { ApiError } from '@/shared/api/error'
+import { configureOffline } from '@/shared/offline/readThrough'
+import { createMemoryStorage } from '@/shared/offline/storage'
 import type { Topic } from '@/modules/content/domain/Topic'
 
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({
@@ -26,6 +28,7 @@ describe('topicStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    configureOffline({ userId: () => 'u-1', storage: createMemoryStorage() })
   })
 
   it('loads the topics of a subject and clears the loading flag', async () => {
@@ -112,5 +115,30 @@ describe('topicStore', () => {
     expect(store.subjectId).toBeNull()
     expect(store.topics).toEqual([])
     expect(store.loading).toBe(false)
+  })
+
+  it('shows the saved topics of that subject while offline', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValueOnce([ATOMS])
+    vi.mocked(topicRepository.listBySubject).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
+
+    const store = useTopicStore()
+    await store.load('s-1')
+    store.reset()
+    await store.load('s-1')
+
+    expect(store.topics).toEqual([ATOMS])
+    expect(store.savedAt).toBeInstanceOf(Date)
+  })
+
+  it('does not serve one subject\'s saved topics for another', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValueOnce([ATOMS])
+    vi.mocked(topicRepository.listBySubject).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
+
+    const store = useTopicStore()
+    await store.load('s-1')
+    await store.load('s-2')
+
+    expect(store.topics).toEqual([])
+    expect(store.error?.code).toBe('api.network_unavailable')
   })
 })

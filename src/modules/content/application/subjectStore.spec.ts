@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { subjectRepository } from '@/modules/content/infrastructure/HttpSubjectRepository'
 import { ApiError } from '@/shared/api/error'
+import { configureOffline } from '@/shared/offline/readThrough'
+import { createMemoryStorage } from '@/shared/offline/storage'
 
 vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
   subjectRepository: { list: vi.fn() },
@@ -14,6 +16,7 @@ describe('subjectStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    configureOffline({ userId: () => 'u-1', storage: createMemoryStorage() })
   })
 
   it('loads subjects and clears the loading flag', async () => {
@@ -156,5 +159,20 @@ describe('subjectStore', () => {
     await next
     expect(store.subjects).toEqual([BIOLOGIA])
     expect(store.loading).toBe(false)
+  })
+
+  it('shows the saved list, and when it was saved, while offline', async () => {
+    vi.mocked(subjectRepository.list).mockResolvedValueOnce([QUIMICA])
+    vi.mocked(subjectRepository.list).mockRejectedValueOnce(new ApiError('api.network_unavailable'))
+
+    const store = useSubjectStore()
+    await store.load()
+    expect(store.savedAt).toBeNull()
+
+    await store.load()
+
+    expect(store.subjects).toEqual([QUIMICA])
+    expect(store.savedAt).toBeInstanceOf(Date)
+    expect(store.error).toBeNull()
   })
 })

@@ -9,6 +9,8 @@ import * as directives from 'vuetify/directives'
 import SubjectsPage from '@/modules/content/presentation/SubjectsPage.vue'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
+import { configureOffline } from '@/shared/offline/readThrough'
+import { createMemoryStorage, type OfflineStorage } from '@/shared/offline/storage'
 
 const { list } = vi.hoisted(() => ({ list: vi.fn() }))
 
@@ -17,6 +19,7 @@ vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
 }))
 
 const vuetify = createVuetify({ components, directives })
+let storage: OfflineStorage
 const Stub = defineComponent({ render: () => null })
 
 async function render() {
@@ -39,6 +42,8 @@ describe('SubjectsPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    storage = createMemoryStorage()
+    configureOffline({ userId: () => 'u-1', storage })
   })
 
   it('lists the subjects, each linking to its topics', async () => {
@@ -80,5 +85,18 @@ describe('SubjectsPage', () => {
 
     expect(wrapper.find('[data-testid="subjects-error"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="subjects-list"]').exists()).toBe(true)
+  })
+
+  it('shows the saved subjects with a banner while offline', async () => {
+    await storage.set('u-1:content:subjects', {
+      value: [{ id: 's-1', name: 'Química', active: true }],
+      savedAt: new Date(2026, 8, 30, 12, 40).toISOString(),
+    })
+    list.mockRejectedValue(new ApiError('api.network_unavailable'))
+
+    const { wrapper } = await render()
+
+    expect(wrapper.find('[data-testid="subject-s-1"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="offline-banner"]').text()).toContain('12:40')
   })
 })

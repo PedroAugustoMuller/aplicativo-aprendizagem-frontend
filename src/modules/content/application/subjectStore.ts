@@ -1,11 +1,13 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { subjectRepository } from '@/modules/content/infrastructure/HttpSubjectRepository'
+import { readThrough } from '@/shared/offline/readThrough'
 import { ApiError } from '@/shared/api/error'
 import type { Subject } from '@/modules/content/domain/Subject'
 
 export const useSubjectStore = defineStore('subjects', () => {
   const subjects = ref<Subject[]>([])
+  const savedAt = ref<Date | null>(null)
   const loading = ref(false)
   const loaded = ref(false)
   const error = ref<ApiError | null>(null)
@@ -25,16 +27,19 @@ export const useSubjectStore = defineStore('subjects', () => {
 
     inFlight = (async (): Promise<void> => {
       try {
-        const result = await subjectRepository.list()
+        const snapshot = await readThrough('content:subjects', () => subjectRepository.list())
 
         if (started === generation) {
-          subjects.value = result
-          loaded.value = true
+          subjects.value = snapshot.value
+          savedAt.value = snapshot.savedAt
+          // A saved copy shows now, but the next ensureLoaded() still asks the server.
+          loaded.value = snapshot.savedAt === null
         }
       } catch (failure: unknown) {
         if (started === generation) {
           error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
           subjects.value = []
+          savedAt.value = null
           loaded.value = false
         }
       } finally {
@@ -59,6 +64,7 @@ export const useSubjectStore = defineStore('subjects', () => {
     inFlight = null
     loading.value = false
     subjects.value = []
+    savedAt.value = null
     loaded.value = false
     error.value = null
   }
@@ -67,5 +73,5 @@ export const useSubjectStore = defineStore('subjects', () => {
     return subjects.value.find((subject) => subject.id === id)?.name ?? null
   }
 
-  return { subjects, loading, error, load, ensureLoaded, nameOf, reset }
+  return { subjects, savedAt, loading, error, load, ensureLoaded, nameOf, reset }
 })
