@@ -8,6 +8,10 @@ import type {
   AccountListItemResponse,
   AccountResponse,
 } from '@/modules/identity/infrastructure/interfaces/AccountResponse'
+import type {
+  ClassroomResponse,
+  SubjectOptionResponse,
+} from '@/modules/identity/infrastructure/interfaces/ClassroomResponse'
 
 export const identityRequests = {
   login: (data: { login: string; password: string }) =>
@@ -33,4 +37,24 @@ export const identityRequests = {
 
   reactivateTeacher: (teacherId: string) =>
     api.post<AccountResponse>({ url: identityRoutes.teacherReactivate, urlParams: { teacherId } }),
+
+  listClassrooms: () => api.get<ClassroomResponse[]>({ url: identityRoutes.classrooms }),
+
+  listSubjectOptions: () => api.get<SubjectOptionResponse[]>({ url: identityRoutes.subjectOptions }),
+
+  createClassroom: (data: { id: string; name: string; subject_id: string }) =>
+    api.post<ClassroomResponse>({ url: identityRoutes.classrooms, data }),
+
+  updateClassroom: (classroomId: string, data: { name: string; subject_id: string }) =>
+    api.patch<ClassroomResponse>({ url: identityRoutes.classroom, urlParams: { classroomId }, data }),
+
+  assignClassroomTeachers: (classroomId: string, teacherIds: readonly string[]) =>
+    api.put<ClassroomResponse>({
+      url: identityRoutes.classroomTeachers,
+      urlParams: { classroomId },
+      data: { teacher_ids: teacherIds },
+    }),
+
+  deactivateClassroom: (classroomId: string) =>
+    api.post<ClassroomResponse>({ url: identityRoutes.classroomDeactivate, urlParams: { classroomId } }),
 }

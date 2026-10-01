@@ -31,6 +31,12 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin'] },
     },
     {
+      path: '/classrooms',
+      name: 'classrooms',
+      component: () => import('@/modules/identity/presentation/ClassroomsPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
       path: '/subjects/:subjectId/topics',
       name: 'subject-topics',
       component: () => import('@/modules/content/presentation/TopicsPage.vue'),

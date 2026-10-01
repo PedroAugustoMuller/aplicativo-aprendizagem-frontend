@@ -7,4 +7,9 @@ export const identityRoutes = {
   teacherReset: '/teachers/:teacherId/reset-password',
   teacherDeactivate: '/teachers/:teacherId/deactivate',
   teacherReactivate: '/teachers/:teacherId/reactivate',
+  classrooms: '/classrooms',
+  classroom: '/classrooms/:classroomId',
+  classroomTeachers: '/classrooms/:classroomId/teachers',
+  classroomDeactivate: '/classrooms/:classroomId/deactivate',
+  subjectOptions: '/subjects',
 } as const
