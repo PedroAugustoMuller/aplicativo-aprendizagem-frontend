@@ -9,6 +9,8 @@ import { request } from '@playwright/test'
 const AUTH_FILE = fileURLToPath(new URL('./.auth/teacher.json', import.meta.url))
 const API_URL = 'http://localhost:8080/api/v1'
 const LOGIN_URL = `${API_URL}/auth/login`
+const BRUNO_FILE = fileURLToPath(new URL('./.auth/bruno.json', import.meta.url))
+const CARLA_FILE = fileURLToPath(new URL('./.auth/carla.json', import.meta.url))
 const DIEGO_FILE = fileURLToPath(new URL('./.auth/diego.json', import.meta.url))
 // DevelopmentAccountsSeeder's fixed id for diego.souza.
 const DIEGO_ID = '0192f0a0-0000-7000-8000-000000000013'
@@ -70,42 +72,42 @@ function readTemporaryPassword(body: unknown): string {
  * budget in seconds once desktop and mobile run in parallel. See the comment
  * at the top of e2e/auth.spec.ts for the resulting login budget.
  */
+async function signIn(
+  context: Awaited<ReturnType<typeof request.newContext>>,
+  credentials: { login: string; password: string },
+  file: string,
+): Promise<string> {
+  const response = await context.post(LOGIN_URL, { data: credentials, headers: { Accept: 'application/json' } })
+
+  if (response.status() === 429) {
+    throw new Error(
+      `Global setup hit the backend login throttle (429) for ${credentials.login}. Wait at least 60 seconds, then re-run the suite.`,
+    )
+  }
+
+  if (!response.ok()) {
+    throw new Error(`Global setup login for ${credentials.login} failed with HTTP ${response.status()}.`)
+  }
+
+  const token = readToken(await response.json())
+
+  await mkdir(dirname(file), { recursive: true })
+  await writeFile(
+    file,
+    JSON.stringify({
+      cookies: [],
+      origins: [{ origin: APP_ORIGIN, localStorage: [{ name: TOKEN_STORAGE_KEY, value: token }] }],
+    }),
+  )
+
+  return token
+}
+
 export default async function globalSetup(): Promise<void> {
   const context = await request.newContext()
 
   try {
-    const response = await context.post(LOGIN_URL, {
-      data: TEACHER,
-      headers: { Accept: 'application/json' },
-    })
-
-    if (response.status() === 429) {
-      throw new Error(
-        'Global setup hit the backend login throttle (429) while signing in for the shared ' +
-          'session. Wait at least 60 seconds for the per-minute window to clear, then re-run ' +
-          'the suite.',
-      )
-    }
-
-    if (!response.ok()) {
-      throw new Error(`Global setup login failed with HTTP ${response.status()}.`)
-    }
-
-    const token = readToken(await response.json())
-
-    await mkdir(dirname(AUTH_FILE), { recursive: true })
-    await writeFile(
-      AUTH_FILE,
-      JSON.stringify({
-        cookies: [],
-        origins: [
-          {
-            origin: APP_ORIGIN,
-            localStorage: [{ name: TOKEN_STORAGE_KEY, value: token }],
-          },
-        ],
-      }),
-    )
+    const token = await signIn(context, TEACHER, AUTH_FILE)
 
     // Diego must start every run with a temporary password, even after a previous
     // run changed it. Reset through the admin API - no login spent, no reseed needed.
@@ -121,6 +123,10 @@ export default async function globalSetup(): Promise<void> {
       DIEGO_FILE,
       JSON.stringify({ login: 'diego.souza', password: readTemporaryPassword(await reset.json()) }),
     )
+
+    // One login each, in their own throttle buckets (login+IP): Ana's budget is unchanged.
+    await signIn(context, { login: 'bruno@escola.br', password: 'password' }, BRUNO_FILE)
+    await signIn(context, { login: 'carla.dias', password: 'password' }, CARLA_FILE)
   } finally {
     await context.dispose()
   }

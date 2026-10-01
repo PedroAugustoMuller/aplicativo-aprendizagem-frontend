@@ -35,6 +35,9 @@ test('a student with a temporary password must replace it before anything else',
   const newPassword = `nova-senha-${Date.now()}`
 
   await page.goto('/login')
+  // Vuetify applies autofocus after mount; filling before it lands sends the
+  // next field's text into the autofocused one.
+  await expect(page.getByTestId('login-identifier').locator('input')).toBeFocused()
   await page.getByTestId('login-identifier').locator('input').fill(diego.login)
   await page.getByTestId('login-password').locator('input').fill(diego.password)
   await page.getByTestId('login-submit').click()
@@ -48,6 +51,7 @@ test('a student with a temporary password must replace it before anything else',
   // vue-router leaves "/" unencoded in query values; accept either form.
   await expect(page).toHaveURL(/\/change-password\?redirect=(%2F|\/)subjects/)
 
+  await expect(page.getByTestId('password-current').locator('input')).toBeFocused()
   await page.getByTestId('password-current').locator('input').fill(diego.password)
   await page.getByTestId('password-new').locator('input').fill(newPassword)
   await page.getByTestId('password-confirm').locator('input').fill(newPassword)

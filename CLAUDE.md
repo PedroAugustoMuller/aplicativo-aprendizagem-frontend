@@ -36,12 +36,16 @@
   holds **network** shapes (the API's DTOs); the repository maps network
   shapes to domain types. Never let an API field name leak into the domain —
   that mapping is why a backend contract change touches one file.
-- `infrastructure/persistence/` is where the IndexedDB offline adapter will
-  go. The HTTP repositories are exported typed as the domain interface
-  (`TopicRepository`, `AuthRepository`), and each store imports that concrete
-  instance directly — there is no injection yet. So swapping in the offline
-  adapter changes **one import line in each store**; pages and the domain are
-  untouched.
+- Offline **reads** go through `readThrough` in `src/shared/offline/` — one
+  generic, per-user IndexedDB cache wired in `main.ts` (`configureOffline`),
+  wiped when the session ends. Offline **writes** (the future quiz-answer
+  queue) will live in each module's `infrastructure/persistence/`. The HTTP
+  repositories are exported typed as the domain interface and each store
+  imports that concrete instance directly — there is no injection yet.
+- A module that needs the viewer's role but must not import `identity` uses
+  `useViewerRole()` (`src/shared/auth/viewer.ts`), wired in `main.ts`.
+- Routes may set `meta.roles`; the guard sends a known user with another role
+  to `/subjects`. Hiding is convenience — the backend answers 403 anyway.
 - Only a module's `infrastructure/` (and `src/main.ts`, the composition root)
   may import `src/shared/api/{client,http,transport,adapters}.ts`. Pages and
   stores never call `api.get` themselves. `ApiError` (`shared/api/error.ts`)
@@ -107,6 +111,9 @@
   `restore()` rejected the token. Two competing pushes there would drop the
   notice. `src/shared/router/guard.spec.ts` covers each branch against a real
   memory-history router.
+- `knownUser` = the confirmed user, else the one remembered from the last
+  confirmation (localStorage `dp2.auth.user`, never the token). Use it only
+  for the menu and offline cache keys; access decisions use `user`.
 
 ## Writes and retries
 
@@ -137,6 +144,15 @@
 
 ## Testing
 
+- `vitest.setup.ts` stubs `VDialog` so dialog content renders in place; test
+  dialogs through their `data-testid`s.
+- In `.vue` files reach browser APIs through `globalThis` (`globalThis.crypto`,
+  `globalThis.print`, `globalThis.location`): ESLint's `no-undef` applies to
+  `.vue` files and no browser globals are configured.
+- dependency-cruiser's `domain-is-pure` covers spec files too: test a domain
+  function from an `application/` spec (see `application/roster.spec.ts`).
+- e2e: wait for an autofocused field to have focus before filling a form, and
+  for `navigator.serviceWorker.ready` before going offline.
 - Vitest specs that mount real Vuetify components rely on
   `test.server.deps.inline: ['vuetify']` in `vite.config.ts`. If a new spec
   mounting Vuetify fails with a CSS-parsing error from vite-node, check that

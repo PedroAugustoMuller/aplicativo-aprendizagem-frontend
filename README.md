@@ -81,6 +81,29 @@ to stop it.
 If you want to run the quality gate or tests before ever running `up`, install
 first with `docker compose run --rm node npm install`.
 
+## Screens by role
+
+| Area | Admin | Teacher | Student |
+|---|---|---|---|
+| Matérias (`/subjects`) | all, + create / rename / deactivate | all (read) | enrolled (read) |
+| Turmas (`/classrooms`) | all, + create / edit / deactivate / assign teachers | assigned classes | — |
+| Turma (`/classrooms/:id`) | full | full for assigned classes | — |
+| Acessos (`/classrooms/:id/credentials`) | print slips | print slips | — |
+| Professores (`/teachers`) | full | — | — |
+
+- **Professores** — create a teacher (the temporary password is shown once,
+  printable), reset a password, deactivate / reactivate.
+- **Turma** — the roster; add new students by pasting one name per line
+  (preview flags repeats, blocks > 50 or names > 120 characters); add an
+  existing student by searching name or username (`GET /students?search=`);
+  reset, deactivate / reactivate, remove from the class.
+- **Acessos** — cut-out cards (app address, name, username, temporary
+  password), eight per A4 page, printed with the browser's print dialog.
+
+Routes carry `meta.roles`; the guard sends a known user with another role to
+`/subjects`, and the menu shows only what the role may open. The backend
+still answers 403 on its own.
+
 ## Commands
 
 Run any of these as `docker compose run --rm node npm run <script>`:
@@ -132,6 +155,12 @@ test:e2e`:
 - Global setup also resets `diego.souza` through the admin API each run, so
   the password-change journey is repeatable without reseeding. That journey
   logs in as Diego once, on `desktop` only, in his own throttle bucket.
+- Global setup also signs in Bruno (teacher) and Carla (student) through the
+  API, once each, in their own throttle buckets. Specs that create data use a
+  timestamp in names, so re-runs never hit "name already taken".
+- Forms with an autofocused field wait for it to have focus before filling,
+  and the offline journey waits for `navigator.serviceWorker.ready` before
+  cutting the network (offline, lazy page chunks come from its precache).
 - Never run `playwright install`; the `e2e` service's image already has the
   browsers baked in, matched to the pinned `@playwright/test` version.
 
@@ -225,6 +254,22 @@ the app shell gate on `hasSession`:
   navigation. The guard only knows this once `/auth/me` has answered; after an
   offline reload, pages show the backend's translated
   `identity.password_change_required` until it does.
+- The last confirmed user (id, name, login, role, `mustChangePassword` —
+  never the token) is remembered in localStorage (`dp2.auth.user`) as
+  `knownUser`, so an offline reload still draws the right menu and finds that
+  user's saved lists. The guard keeps relying on the server-confirmed `user`.
+
+### Offline reads
+
+Every list (subjects, topics, teachers, classes, subject options, a class
+roster) loads through `readThrough` (`src/shared/offline/readThrough.ts`):
+network first; the answer is saved to IndexedDB (`dp2-offline`) under the
+current user's id. Only when the request fails for lack of network
+(`api.network_unavailable` / `api.request_timeout`) is the saved copy shown,
+with a banner giving its time — a 403 or 404 is never hidden behind stale
+data. Each user's copies are wiped when their session ends. Access slips and
+student search never go through it. Writes need a connection: their buttons
+are disabled offline (`Disponível apenas com conexão`).
 
 ## Adding a module
 

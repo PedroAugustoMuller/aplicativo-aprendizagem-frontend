@@ -39,6 +39,7 @@ test.describe('without a session, login-issuing tests', () => {
     })
 
     await page.goto('/login')
+    await expect(page.getByTestId('login-identifier').locator('input')).toBeFocused()
     await page.getByTestId('login-identifier').locator('input').fill(TEACHER.login)
     await page.getByTestId('login-password').locator('input').fill(TEACHER.password)
     await page.getByTestId('login-submit').click()
@@ -65,6 +66,7 @@ test.describe('without a session, login-issuing tests', () => {
     )
 
     await page.goto('/login')
+    await expect(page.getByTestId('login-identifier').locator('input')).toBeFocused()
     await page.getByTestId('login-identifier').locator('input').fill(TEACHER.login)
     await page.getByTestId('login-password').locator('input').fill('definitely-wrong')
     await page.getByTestId('login-submit').click()
