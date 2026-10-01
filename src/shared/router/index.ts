@@ -25,6 +25,12 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/teachers',
+      name: 'teachers',
+      component: () => import('@/modules/identity/presentation/TeachersPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin'] },
+    },
+    {
       path: '/subjects/:subjectId/topics',
       name: 'subject-topics',
       component: () => import('@/modules/content/presentation/TopicsPage.vue'),

@@ -1,0 +1,22 @@
+/* Printing shows only what sits inside .print-area (access slips). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

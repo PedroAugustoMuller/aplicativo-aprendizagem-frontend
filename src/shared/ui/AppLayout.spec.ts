@@ -20,6 +20,7 @@ vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
   authRepository: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
 }))
 vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({ subjectRepository: { list: vi.fn() } }))
+vi.mock('@/modules/identity/infrastructure/HttpTeacherRepository', () => ({ teacherRepository: { list: vi.fn() } }))
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject: vi.fn() } }))
 
 const vuetify = createVuetify({ components, directives })

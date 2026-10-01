@@ -4,7 +4,17 @@ import { identityRequests } from '@/modules/identity/infrastructure/client/reque
 import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/identity/infrastructure/client/requests', () => ({
-  identityRequests: { login: vi.fn(), logout: vi.fn(), currentUser: vi.fn(), changePassword: vi.fn() },
+  identityRequests: {
+    login: vi.fn(),
+    logout: vi.fn(),
+    currentUser: vi.fn(),
+    changePassword: vi.fn(),
+    listTeachers: vi.fn(),
+    createTeacher: vi.fn(),
+    resetTeacherPassword: vi.fn(),
+    deactivateTeacher: vi.fn(),
+    reactivateTeacher: vi.fn(),
+  },
 }))
 
 const ANA_RESPONSE = {

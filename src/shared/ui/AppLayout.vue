@@ -8,6 +8,7 @@ import { useAppTheme } from '@/shared/theme/useAppTheme'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
+import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { clearOfflineData } from '@/shared/offline/readThrough'
 import { navItemsFor } from '@/shared/ui/navigation'
 
@@ -31,6 +32,7 @@ const showNav = computed(() => session.hasSession && !session.mustChangePassword
 
 const subjects = useSubjectStore()
 const topics = useTopicStore()
+const teachers = useTeacherStore()
 
 // Sign-out and an expired token both end here: the next person on this phone
 // must not see (or briefly flash) the previous session's content.
@@ -40,6 +42,7 @@ watch(
     if (!hasSession) {
       subjects.reset()
       topics.reset()
+      teachers.reset()
     }
   },
 )
