@@ -7,6 +7,10 @@
   .print-area,
   .print-area * {
     visibility: visible;
+    /* Paper is white whatever the screen theme; dark-mode text would vanish. */
+    color: #000 !important;
+    background: #fff !important;
+    border-color: #000 !important;
   }
 
   .print-area {

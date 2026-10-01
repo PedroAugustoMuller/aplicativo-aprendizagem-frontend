@@ -72,3 +72,18 @@ test('offline, classes and the roster stay readable and changes are disabled', a
   await expect(page.getByTestId('roster-add')).toBeDisabled()
   await context.setOffline(false)
 })
+
+test('access slips print black on white even in dark mode', async ({ page }) => {
+  // Browsers drop backgrounds when printing but keep text colour: light text
+  // from the dark theme would vanish on paper.
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto(`/classrooms/${CLASSROOM_ID}/credentials`)
+  await expect(page.getByTestId('credentials-grid')).toBeVisible()
+
+  await page.emulateMedia({ colorScheme: 'dark', media: 'print' })
+  const card = page.locator('[data-testid^="credential-"]').first()
+
+  await expect(card).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(card).toHaveCSS('border-top-color', 'rgb(0, 0, 0)')
+})
