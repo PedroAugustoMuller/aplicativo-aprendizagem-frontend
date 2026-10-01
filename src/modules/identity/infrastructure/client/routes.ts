@@ -12,4 +12,10 @@ export const identityRoutes = {
   classroomTeachers: '/classrooms/:classroomId/teachers',
   classroomDeactivate: '/classrooms/:classroomId/deactivate',
   subjectOptions: '/subjects',
+  classroomStudents: '/classrooms/:classroomId/students',
+  classroomStudent: '/classrooms/:classroomId/students/:studentId',
+  classroomCredentials: '/classrooms/:classroomId/credentials',
+  studentReset: '/students/:studentId/reset-password',
+  studentDeactivate: '/students/:studentId/deactivate',
+  studentReactivate: '/students/:studentId/reactivate',
 } as const

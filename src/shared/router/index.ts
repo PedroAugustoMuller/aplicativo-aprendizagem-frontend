@@ -37,6 +37,18 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
+      path: '/classrooms/:classroomId',
+      name: 'classroom',
+      component: () => import('@/modules/identity/presentation/ClassroomPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
+      path: '/classrooms/:classroomId/credentials',
+      name: 'classroom-credentials',
+      component: () => import('@/modules/identity/presentation/CredentialsPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
       path: '/subjects/:subjectId/topics',
       name: 'subject-topics',
       component: () => import('@/modules/content/presentation/TopicsPage.vue'),

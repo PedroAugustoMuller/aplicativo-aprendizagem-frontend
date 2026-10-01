@@ -10,6 +10,7 @@ import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
+import { useRosterStore } from '@/modules/identity/application/rosterStore'
 import { clearOfflineData } from '@/shared/offline/readThrough'
 import { navItemsFor } from '@/shared/ui/navigation'
 
@@ -35,6 +36,7 @@ const subjects = useSubjectStore()
 const topics = useTopicStore()
 const teachers = useTeacherStore()
 const classrooms = useClassroomStore()
+const roster = useRosterStore()
 
 // Sign-out and an expired token both end here: the next person on this phone
 // must not see (or briefly flash) the previous session's content.
@@ -46,6 +48,7 @@ watch(
       topics.reset()
       teachers.reset()
       classrooms.reset()
+      roster.reset()
     }
   },
 )

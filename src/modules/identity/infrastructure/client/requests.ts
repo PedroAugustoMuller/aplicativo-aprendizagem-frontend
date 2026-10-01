@@ -12,6 +12,7 @@ import type {
   ClassroomResponse,
   SubjectOptionResponse,
 } from '@/modules/identity/infrastructure/interfaces/ClassroomResponse'
+import type { CredentialResponse } from '@/modules/identity/infrastructure/interfaces/CredentialResponse'
 
 export const identityRequests = {
   login: (data: { login: string; password: string }) =>
@@ -57,4 +58,25 @@ export const identityRequests = {
 
   deactivateClassroom: (classroomId: string) =>
     api.post<ClassroomResponse>({ url: identityRoutes.classroomDeactivate, urlParams: { classroomId } }),
+
+  listStudents: (classroomId: string) =>
+    api.get<AccountListItemResponse[]>({ url: identityRoutes.classroomStudents, urlParams: { classroomId } }),
+
+  createStudents: (classroomId: string, students: readonly { id: string; name: string }[]) =>
+    api.post<AccountResponse[]>({ url: identityRoutes.classroomStudents, urlParams: { classroomId }, data: { students } }),
+
+  unenrolStudent: (classroomId: string, studentId: string) =>
+    api.delete<ClassroomResponse>({ url: identityRoutes.classroomStudent, urlParams: { classroomId, studentId } }),
+
+  resetStudentPassword: (studentId: string) =>
+    api.post<AccountResponse>({ url: identityRoutes.studentReset, urlParams: { studentId } }),
+
+  deactivateStudent: (studentId: string) =>
+    api.post<AccountResponse>({ url: identityRoutes.studentDeactivate, urlParams: { studentId } }),
+
+  reactivateStudent: (studentId: string) =>
+    api.post<AccountResponse>({ url: identityRoutes.studentReactivate, urlParams: { studentId } }),
+
+  listCredentials: (classroomId: string) =>
+    api.get<CredentialResponse[]>({ url: identityRoutes.classroomCredentials, urlParams: { classroomId } }),
 }
