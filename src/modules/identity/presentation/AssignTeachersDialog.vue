@@ -7,6 +7,7 @@ import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Classroom } from '@/modules/identity/domain/Classroom'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean; classroom: Classroom | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -68,6 +69,7 @@ async function save(): Promise<void> {
         {{ t('classrooms.assignTitle', { name: classroom?.name ?? '' }) }}
       </v-card-title>
       <v-card-text>
+        <OfflineHint />
         <v-autocomplete
           v-model="selected"
           :items="items"

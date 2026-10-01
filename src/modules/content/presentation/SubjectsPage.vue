@@ -12,6 +12,7 @@ import type { Subject } from '@/modules/content/domain/Subject'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const store = useSubjectStore()
 const { t, te } = useI18n()
@@ -85,6 +86,7 @@ onMounted(() => void store.load())
     />
 
     <OfflineBanner :saved-at="store.savedAt" />
+    <OfflineHint v-if="isAdmin" />
 
     <v-progress-linear
       v-if="store.loading"

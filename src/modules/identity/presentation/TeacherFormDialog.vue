@@ -6,6 +6,7 @@ import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { IssuedAccount } from '@/modules/identity/domain/IssuedAccount'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; created: [account: IssuedAccount] }>()
@@ -68,6 +69,7 @@ async function save(): Promise<void> {
     <v-card data-testid="teacher-form">
       <v-card-title>{{ t('teachers.create') }}</v-card-title>
       <v-card-text>
+        <OfflineHint />
         <v-form @submit.prevent="save">
           <v-text-field
             v-model="name"

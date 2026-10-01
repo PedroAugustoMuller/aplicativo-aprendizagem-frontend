@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 defineProps<{
   modelValue: boolean
@@ -24,7 +25,10 @@ const { t } = useI18n()
       <v-card-title class="text-wrap">
         {{ title }}
       </v-card-title>
-      <v-card-text>{{ message }}</v-card-text>
+      <v-card-text>
+        <OfflineHint />
+        {{ message }}
+      </v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn

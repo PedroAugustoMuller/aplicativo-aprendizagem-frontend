@@ -6,6 +6,7 @@ import { useRosterStore, type EnrolResult } from '@/modules/identity/application
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { StudentMatch } from '@/modules/identity/domain/Student'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean; classroomId: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; enrolled: [] }>()
@@ -117,6 +118,7 @@ async function submit(): Promise<void> {
     <v-card data-testid="student-search">
       <v-card-title>{{ t('search.title') }}</v-card-title>
       <v-card-text>
+        <OfflineHint />
         <v-text-field
           v-model="text"
           data-testid="student-search-input"

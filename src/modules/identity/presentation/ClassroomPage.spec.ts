@@ -145,6 +145,7 @@ describe('ClassroomPage', () => {
     expect(wrapper.find('[data-testid="roster-student-s-1"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="roster-add"]').attributes('disabled')).toBeDefined()
     expect(wrapper.find('[data-testid="roster-remove-s-1"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-testid="offline-hint"]').exists()).toBe(true)
   })
 
   it('explains a class the teacher does not teach', async () => {
@@ -161,5 +162,38 @@ describe('ClassroomPage', () => {
     await wrapper.find('[data-testid="roster-add-existing"]').trigger('click')
 
     expect(wrapper.find('[data-testid="student-search"]').exists()).toBe(true)
+  })
+
+  it('reuses the ids after the dialog is closed and reopened, so a timed-out batch is not created twice', async () => {
+    students.createMany.mockRejectedValueOnce(new ApiError('api.request_timeout'))
+    students.createMany.mockResolvedValueOnce([])
+
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="roster-add"]').trigger('click')
+    await wrapper.find('[data-testid="roster-names"] textarea').setValue('Bia\nCaio')
+    await wrapper.find('[data-testid="roster-submit"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="roster-add-cancel"]').trigger('click')
+    await wrapper.find('[data-testid="roster-add"]').trigger('click')
+    await wrapper.find('[data-testid="roster-names"] textarea').setValue('Bia\nCaio\nDani')
+    await wrapper.find('[data-testid="roster-submit"]').trigger('click')
+    await flushPromises()
+
+    const [first, second] = students.createMany.mock.calls
+    expect(second?.[1].slice(0, 2)).toEqual(first?.[1])
+  })
+
+  it('explains the dead button when the connection drops with the add dialog open', async () => {
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="roster-add"]').trigger('click')
+    await wrapper.find('[data-testid="roster-names"] textarea').setValue('Bia')
+
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+    window.dispatchEvent(new Event('offline'))
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="roster-add-dialog"] [data-testid="offline-hint"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="roster-submit"]').attributes('disabled')).toBeDefined()
   })
 })

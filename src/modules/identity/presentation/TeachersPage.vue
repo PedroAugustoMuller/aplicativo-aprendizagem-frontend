@@ -9,6 +9,7 @@ import TemporaryPasswordDialog from '@/modules/identity/presentation/TemporaryPa
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { IssuedAccount } from '@/modules/identity/domain/IssuedAccount'
@@ -89,6 +90,7 @@ function toggle(teacher: Teacher): void {
     </div>
 
     <OfflineBanner :saved-at="store.savedAt" />
+    <OfflineHint />
 
     <v-alert
       v-if="actionMessage"

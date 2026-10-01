@@ -24,6 +24,11 @@ export const useRosterStore = defineStore('roster', () => {
   const credentialsLoading = ref(false)
   const credentialsError = ref<ApiError | null>(null)
   let latest = 0
+  // Ids for rows not yet created, per class, by name and occurrence. They outlive
+  // the dialog: if a batch timed out but the server created it, pasting the same
+  // names again (even after reopening) replays it instead of duplicating 30
+  // accounts that can never be edited or removed.
+  const pendingIds = new Map<string, string[]>()
 
   async function load(nextClassroomId: string): Promise<void> {
     const request = ++latest
@@ -59,8 +64,34 @@ export const useRosterStore = defineStore('roster', () => {
     }
   }
 
+  function rowsFor(forClassroomId: string, names: readonly string[]): NewStudent[] {
+    const used = new Map<string, number>()
+
+    return names.map((name) => {
+      const key = `${forClassroomId}\u0000${name}`
+      const occurrence = used.get(key) ?? 0
+      used.set(key, occurrence + 1)
+
+      const ids = pendingIds.get(key) ?? []
+      const id = ids[occurrence] ?? globalThis.crypto.randomUUID()
+      ids[occurrence] = id
+      pendingIds.set(key, ids)
+
+      return { id, name }
+    })
+  }
+
+  function forgetPending(forClassroomId: string): void {
+    for (const key of [...pendingIds.keys()]) {
+      if (key.startsWith(`${forClassroomId}\u0000`)) {
+        pendingIds.delete(key)
+      }
+    }
+  }
+
   async function createMany(forClassroomId: string, rows: readonly NewStudent[]): Promise<IssuedAccount[]> {
     const issued = await studentRepository.createMany(forClassroomId, rows)
+    forgetPending(forClassroomId)
     await load(forClassroomId)
 
     return issued
@@ -124,6 +155,7 @@ export const useRosterStore = defineStore('roster', () => {
 
   function reset(): void {
     latest += 1
+    pendingIds.clear()
     classroomId.value = null
     students.value = []
     savedAt.value = null
@@ -136,6 +168,6 @@ export const useRosterStore = defineStore('roster', () => {
 
   return {
     classroomId, students, savedAt, loading, error, credentials, credentialsLoading, credentialsError,
-    load, createMany, unenrol, resetPassword, setActive, loadCredentials, search, enrolMany, reset,
+    load, rowsFor, createMany, unenrol, resetPassword, setActive, loadCredentials, search, enrolMany, reset,
   }
 })

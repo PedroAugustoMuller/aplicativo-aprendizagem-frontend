@@ -6,6 +6,7 @@ import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Subject } from '@/modules/content/domain/Subject'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean; subject: Subject | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -71,6 +72,7 @@ async function save(): Promise<void> {
     <v-card data-testid="subject-form">
       <v-card-title>{{ subject === null ? t('subjects.create') : t('subjects.rename') }}</v-card-title>
       <v-card-text>
+        <OfflineHint />
         <v-form @submit.prevent="save">
           <v-text-field
             v-model="name"

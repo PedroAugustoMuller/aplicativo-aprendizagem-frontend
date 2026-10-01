@@ -124,4 +124,24 @@ describe('rosterStore', () => {
 
     expect(studentRepository.search).toHaveBeenCalledWith('carla')
   })
+
+  it('gives the same names the same ids until a batch succeeds, even across dialog openings', async () => {
+    vi.mocked(studentRepository.createMany).mockRejectedValueOnce(new ApiError('api.request_timeout'))
+    vi.mocked(studentRepository.createMany).mockResolvedValueOnce([])
+
+    const store = useRosterStore()
+    const first = store.rowsFor('c-1', ['Ana', 'Bia', 'Ana'])
+    const again = store.rowsFor('c-1', ['Bia', 'Ana', 'Ana', 'Caio'])
+
+    expect(new Set(first.map((row) => row.id)).size).toBe(3)
+    expect(again.find((row) => row.name === 'Bia')?.id).toBe(first[1]?.id)
+    expect(again.filter((row) => row.name === 'Ana').map((row) => row.id)).toEqual([first[0]?.id, first[2]?.id])
+    expect(store.rowsFor('c-2', ['Ana'])[0]?.id).not.toBe(first[0]?.id)
+
+    await expect(store.createMany('c-1', first)).rejects.toMatchObject({ code: 'api.request_timeout' })
+    expect(store.rowsFor('c-1', ['Ana'])[0]?.id).toBe(first[0]?.id)
+
+    await store.createMany('c-1', first)
+    expect(store.rowsFor('c-1', ['Ana'])[0]?.id).not.toBe(first[0]?.id)
+  })
 })

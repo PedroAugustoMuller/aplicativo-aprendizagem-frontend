@@ -11,6 +11,7 @@ import ClassroomFormDialog from '@/modules/identity/presentation/ClassroomFormDi
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Classroom } from '@/modules/identity/domain/Classroom'
@@ -99,6 +100,7 @@ async function confirmDeactivate(): Promise<void> {
     </div>
 
     <OfflineBanner :saved-at="store.savedAt" />
+    <OfflineHint v-if="isAdmin" />
 
     <v-alert
       v-if="actionMessage"

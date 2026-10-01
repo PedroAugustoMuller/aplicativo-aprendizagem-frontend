@@ -128,6 +128,7 @@ export default {
   offline: {
     banner: 'Sem conexão — mostrando dados salvos às {time}.',
     writeDisabled: 'Disponível apenas com conexão',
+    writeHint: 'Sem conexão: criar, editar e desativar voltam quando a internet voltar.',
   },
   errors: {
     api: {

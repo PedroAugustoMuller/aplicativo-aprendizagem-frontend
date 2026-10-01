@@ -128,6 +128,7 @@ export default {
   offline: {
     banner: 'Offline — showing data saved at {time}.',
     writeDisabled: 'Only available when online',
+    writeHint: 'Offline: creating, editing and deactivating come back with the connection.',
   },
   errors: {
     api: {

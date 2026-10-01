@@ -6,6 +6,7 @@ import { useClassroomStore } from '@/modules/identity/application/classroomStore
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Classroom } from '@/modules/identity/domain/Classroom'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean; classroom: Classroom | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -73,6 +74,7 @@ async function save(): Promise<void> {
     <v-card data-testid="classroom-form">
       <v-card-title>{{ classroom === null ? t('classrooms.create') : t('classrooms.edit') }}</v-card-title>
       <v-card-text>
+        <OfflineHint />
         <v-form @submit.prevent="save">
           <v-text-field
             v-model="name"

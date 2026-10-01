@@ -6,7 +6,7 @@ import { useRosterStore } from '@/modules/identity/application/rosterStore'
 import { MAX_BATCH, MAX_NAME_LENGTH, parseRoster } from '@/modules/identity/domain/roster'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
-import type { NewStudent } from '@/modules/identity/domain/Student'
+import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean; classroomId: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; created: [] }>()
@@ -18,8 +18,6 @@ const online = useOnline()
 const text = ref('')
 const busy = ref(false)
 const error = ref<ApiError | null>(null)
-// Ids are kept while the pasted text is unchanged, so a retry replays the batch.
-let pending: { text: string; rows: NewStudent[] } | null = null
 
 watch(
   () => props.modelValue,
@@ -27,7 +25,6 @@ watch(
     if (open) {
       text.value = ''
       error.value = null
-      pending = null
     }
   },
   { immediate: true },
@@ -43,15 +40,12 @@ async function submit(): Promise<void> {
     return
   }
 
-  if (pending === null || pending.text !== text.value) {
-    pending = { text: text.value, rows: preview.value.names.map((name) => ({ id: globalThis.crypto.randomUUID(), name })) }
-  }
-
   busy.value = true
   error.value = null
 
   try {
-    await store.createMany(props.classroomId, pending.rows)
+    // The store keeps each name's id until a batch succeeds, across openings.
+    await store.createMany(props.classroomId, store.rowsFor(props.classroomId, preview.value.names))
     emit('update:modelValue', false)
     emit('created')
   } catch (failure: unknown) {
@@ -71,6 +65,7 @@ async function submit(): Promise<void> {
     <v-card data-testid="roster-add-dialog">
       <v-card-title>{{ t('roster.add') }}</v-card-title>
       <v-card-text>
+        <OfflineHint />
         <v-textarea
           v-model="text"
           data-testid="roster-names"
@@ -124,6 +119,7 @@ async function submit(): Promise<void> {
         <v-spacer />
         <v-btn
           variant="text"
+          data-testid="roster-add-cancel"
           @click="emit('update:modelValue', false)"
         >
           {{ t('common.cancel') }}
