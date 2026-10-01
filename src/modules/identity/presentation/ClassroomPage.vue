@@ -3,10 +3,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useOnline } from '@vueuse/core'
-import { mdiAccountCheck, mdiAccountOff, mdiAccountPlus, mdiArrowLeft, mdiLockReset, mdiPrinter, mdiAccountRemove } from '@mdi/js'
+import { mdiAccountCheck, mdiAccountOff, mdiAccountPlus, mdiArrowLeft, mdiLockReset, mdiPrinter, mdiAccountRemove, mdiAccountSearch } from '@mdi/js'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useRosterStore } from '@/modules/identity/application/rosterStore'
 import AddStudentsDialog from '@/modules/identity/presentation/AddStudentsDialog.vue'
+import StudentSearchDialog from '@/modules/identity/presentation/StudentSearchDialog.vue'
 import TemporaryPasswordDialog from '@/modules/identity/presentation/TemporaryPasswordDialog.vue'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
@@ -31,6 +32,7 @@ const classroomId = computed(() => {
 const classroom = computed(() => classrooms.find(classroomId.value))
 
 const adding = ref(false)
+const searching = ref(false)
 const issued = ref<IssuedAccount | null>(null)
 const resetting = ref<Student | null>(null)
 const removing = ref<Student | null>(null)
@@ -127,6 +129,16 @@ const openSlips = (): Promise<void> => router.push(`/classrooms/${classroomId.va
         @click="adding = true"
       >
         {{ t('roster.add') }}
+      </v-btn>
+      <v-btn
+        variant="tonal"
+        :prepend-icon="mdiAccountSearch"
+        :disabled="!online"
+        :title="online ? undefined : t('offline.writeDisabled')"
+        data-testid="roster-add-existing"
+        @click="searching = true"
+      >
+        {{ t('roster.addExisting') }}
       </v-btn>
       <v-btn
         variant="tonal"
@@ -234,6 +246,10 @@ const openSlips = (): Promise<void> => router.push(`/classrooms/${classroomId.va
       v-model="adding"
       :classroom-id="classroomId"
       @created="openSlips"
+    />
+    <StudentSearchDialog
+      v-model="searching"
+      :classroom-id="classroomId"
     />
     <TemporaryPasswordDialog
       :model-value="issued !== null"

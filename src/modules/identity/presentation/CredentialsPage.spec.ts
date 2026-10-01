@@ -13,6 +13,7 @@ import { i18n } from '@/shared/i18n'
 
 const students = vi.hoisted(() => ({
   listByClassroom: vi.fn(), createMany: vi.fn(), unenrol: vi.fn(), resetPassword: vi.fn(), setActive: vi.fn(), credentials: vi.fn(),
+  search: vi.fn(), enrol: vi.fn(),
 }))
 const classrooms = vi.hoisted(() => ({
   list: vi.fn(), subjectOptions: vi.fn(), create: vi.fn(), update: vi.fn(), assignTeachers: vi.fn(), deactivate: vi.fn(),

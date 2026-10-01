@@ -22,7 +22,7 @@ vi.mock('@/modules/identity/infrastructure/HttpAuthRepository', () => ({
 vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({ subjectRepository: { list: vi.fn() } }))
 vi.mock('@/modules/identity/infrastructure/HttpTeacherRepository', () => ({ teacherRepository: { list: vi.fn() } }))
 vi.mock('@/modules/identity/infrastructure/HttpClassroomRepository', () => ({ classroomRepository: { list: vi.fn() } }))
-vi.mock('@/modules/identity/infrastructure/HttpStudentRepository', () => ({ studentRepository: { listByClassroom: vi.fn() } }))
+vi.mock('@/modules/identity/infrastructure/HttpStudentRepository', () => ({ studentRepository: { listByClassroom: vi.fn(), search: vi.fn(), enrol: vi.fn() } }))
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject: vi.fn() } }))
 
 const vuetify = createVuetify({ components, directives })

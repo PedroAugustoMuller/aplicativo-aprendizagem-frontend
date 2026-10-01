@@ -9,6 +9,7 @@ import { ApiError } from '@/shared/api/error'
 vi.mock('@/modules/identity/infrastructure/HttpStudentRepository', () => ({
   studentRepository: {
     listByClassroom: vi.fn(), createMany: vi.fn(), unenrol: vi.fn(), resetPassword: vi.fn(), setActive: vi.fn(), credentials: vi.fn(),
+    search: vi.fn(), enrol: vi.fn(),
   },
 }))
 
@@ -100,5 +101,27 @@ describe('rosterStore', () => {
     expect(store.classroomId).toBeNull()
     expect(store.students).toEqual([])
     expect(store.credentials).toEqual([])
+  })
+
+  it('enrols each selected student, reporting failures per student, then reloads', async () => {
+    vi.mocked(studentRepository.enrol)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new ApiError('identity.classroom.enrolment_requires_active_student', {}, 422))
+
+    const results = await useRosterStore().enrolMany('c-2', ['s-1', 's-2'])
+
+    expect(results).toEqual([
+      { studentId: 's-1', error: null },
+      { studentId: 's-2', error: expect.objectContaining({ code: 'identity.classroom.enrolment_requires_active_student' }) },
+    ])
+    expect(studentRepository.listByClassroom).toHaveBeenCalledWith('c-2')
+  })
+
+  it('searches without saving anything offline', async () => {
+    vi.mocked(studentRepository.search).mockResolvedValue([])
+
+    await useRosterStore().search('carla')
+
+    expect(studentRepository.search).toHaveBeenCalledWith('carla')
   })
 })

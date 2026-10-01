@@ -15,6 +15,7 @@ import { ApiError } from '@/shared/api/error'
 
 const students = vi.hoisted(() => ({
   listByClassroom: vi.fn(), createMany: vi.fn(), unenrol: vi.fn(), resetPassword: vi.fn(), setActive: vi.fn(), credentials: vi.fn(),
+  search: vi.fn(), enrol: vi.fn(),
 }))
 const classrooms = vi.hoisted(() => ({
   list: vi.fn(), subjectOptions: vi.fn(), create: vi.fn(), update: vi.fn(), assignTeachers: vi.fn(), deactivate: vi.fn(),
@@ -152,5 +153,13 @@ describe('ClassroomPage', () => {
     const { wrapper } = await render()
 
     expect(wrapper.find('[data-testid="roster-error"]').text()).toContain('Você não tem permissão para isso.')
+  })
+
+  it('opens the search for an existing student', async () => {
+    const { wrapper } = await render()
+
+    await wrapper.find('[data-testid="roster-add-existing"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="student-search"]').exists()).toBe(true)
   })
 })

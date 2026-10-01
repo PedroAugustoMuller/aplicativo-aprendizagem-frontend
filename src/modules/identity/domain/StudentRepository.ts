@@ -1,5 +1,5 @@
 import type { IssuedAccount } from '@/modules/identity/domain/IssuedAccount'
-import type { Credential, NewStudent, Student } from '@/modules/identity/domain/Student'
+import type { Credential, NewStudent, Student, StudentMatch } from '@/modules/identity/domain/Student'
 
 export interface StudentRepository {
   listByClassroom(classroomId: string): Promise<Student[]>
@@ -8,4 +8,6 @@ export interface StudentRepository {
   resetPassword(studentId: string): Promise<IssuedAccount>
   setActive(studentId: string, active: boolean): Promise<void>
   credentials(classroomId: string): Promise<Credential[]>
+  search(text: string): Promise<StudentMatch[]>
+  enrol(classroomId: string, studentId: string): Promise<void>
 }

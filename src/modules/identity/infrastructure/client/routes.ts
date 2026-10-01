@@ -18,4 +18,5 @@ export const identityRoutes = {
   studentReset: '/students/:studentId/reset-password',
   studentDeactivate: '/students/:studentId/deactivate',
   studentReactivate: '/students/:studentId/reactivate',
+  students: '/students',
 } as const

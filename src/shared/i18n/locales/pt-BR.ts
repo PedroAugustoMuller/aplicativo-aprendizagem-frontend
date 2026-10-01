@@ -116,6 +116,15 @@ export default {
     print: 'Imprimir',
     empty: 'Nenhum acesso pendente nesta turma.',
   },
+  search: {
+    title: 'Adicionar aluno existente',
+    label: 'Nome ou usuário',
+    hint: 'Digite pelo menos 2 letras.',
+    none: 'Nenhum aluno encontrado.',
+    alreadyIn: 'Já está na turma',
+    submit: 'Matricular ({count})',
+    failures: 'Não foi possível matricular: {names}',
+  },
   offline: {
     banner: 'Sem conexão — mostrando dados salvos às {time}.',
     writeDisabled: 'Disponível apenas com conexão',

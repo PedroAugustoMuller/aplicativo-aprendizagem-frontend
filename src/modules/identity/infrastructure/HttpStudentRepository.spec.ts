@@ -11,6 +11,8 @@ vi.mock('@/modules/identity/infrastructure/client/requests', () => ({
     deactivateStudent: vi.fn(),
     reactivateStudent: vi.fn(),
     listCredentials: vi.fn(),
+    searchStudents: vi.fn(),
+    enrolStudent: vi.fn(),
   },
 }))
 
@@ -67,5 +69,26 @@ describe('HttpStudentRepository', () => {
     await expect(studentRepository.credentials('c-1')).resolves.toEqual([
       { userId: 's-1', name: 'Ana', username: 'ana.lima', temporaryPassword: 'Abc23456' },
     ])
+  })
+
+  it('searches by text and maps each match with its classes', async () => {
+    vi.mocked(identityRequests.searchStudents).mockResolvedValue([
+      { id: 's-1', name: 'Carla Dias', login: 'carla.dias', classrooms: [{ id: 'c-1', name: 'Química 1' }] },
+    ])
+
+    await expect(studentRepository.search('carla')).resolves.toEqual([
+      { id: 's-1', name: 'Carla Dias', username: 'carla.dias', classrooms: [{ id: 'c-1', name: 'Química 1' }] },
+    ])
+    expect(identityRequests.searchStudents).toHaveBeenCalledWith('carla')
+  })
+
+  it('enrols an existing student', async () => {
+    vi.mocked(identityRequests.enrolStudent).mockResolvedValue({
+      id: 'c-2', name: 'Biologia 1', subject_id: 's', teacher_ids: [], student_count: 1, active: true,
+    })
+
+    await studentRepository.enrol('c-2', 's-1')
+
+    expect(identityRequests.enrolStudent).toHaveBeenCalledWith('c-2', 's-1')
   })
 })

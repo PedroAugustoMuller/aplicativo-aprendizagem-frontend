@@ -4,10 +4,15 @@ import { studentRepository } from '@/modules/identity/infrastructure/HttpStudent
 import { readThrough } from '@/shared/offline/readThrough'
 import { ApiError } from '@/shared/api/error'
 import type { IssuedAccount } from '@/modules/identity/domain/IssuedAccount'
-import type { Credential, NewStudent, Student } from '@/modules/identity/domain/Student'
+import type { Credential, NewStudent, Student, StudentMatch } from '@/modules/identity/domain/Student'
 
 const asApiError = (failure: unknown): ApiError =>
   failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
+
+export interface EnrolResult {
+  readonly studentId: string
+  readonly error: ApiError | null
+}
 
 export const useRosterStore = defineStore('roster', () => {
   const classroomId = ref<string | null>(null)
@@ -93,6 +98,30 @@ export const useRosterStore = defineStore('roster', () => {
     }
   }
 
+  // Search answers live from the server only: never served stale.
+  async function search(text: string): Promise<StudentMatch[]> {
+    return studentRepository.search(text)
+  }
+
+  // One request per student, in order: a failure names its student instead of
+  // hiding the ones that worked. Enrolment is idempotent, so a retry is safe.
+  async function enrolMany(forClassroomId: string, studentIds: readonly string[]): Promise<EnrolResult[]> {
+    const results: EnrolResult[] = []
+
+    for (const studentId of studentIds) {
+      try {
+        await studentRepository.enrol(forClassroomId, studentId)
+        results.push({ studentId, error: null })
+      } catch (failure: unknown) {
+        results.push({ studentId, error: asApiError(failure) })
+      }
+    }
+
+    await load(forClassroomId)
+
+    return results
+  }
+
   function reset(): void {
     latest += 1
     classroomId.value = null
@@ -107,6 +136,6 @@ export const useRosterStore = defineStore('roster', () => {
 
   return {
     classroomId, students, savedAt, loading, error, credentials, credentialsLoading, credentialsError,
-    load, createMany, unenrol, resetPassword, setActive, loadCredentials, reset,
+    load, createMany, unenrol, resetPassword, setActive, loadCredentials, search, enrolMany, reset,
   }
 })

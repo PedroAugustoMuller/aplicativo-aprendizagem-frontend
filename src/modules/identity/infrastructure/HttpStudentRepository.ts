@@ -1,7 +1,7 @@
 import { identityRequests } from '@/modules/identity/infrastructure/client/requests'
 import { toIssuedAccount } from '@/modules/identity/infrastructure/accountMapping'
 import type { IssuedAccount } from '@/modules/identity/domain/IssuedAccount'
-import type { Credential, NewStudent, Student } from '@/modules/identity/domain/Student'
+import type { Credential, NewStudent, Student, StudentMatch } from '@/modules/identity/domain/Student'
 import type { StudentRepository } from '@/modules/identity/domain/StudentRepository'
 
 export const studentRepository: StudentRepository = {
@@ -48,5 +48,20 @@ export const studentRepository: StudentRepository = {
       username: item.login,
       temporaryPassword: item.temporary_password,
     }))
+  },
+
+  async search(text: string): Promise<StudentMatch[]> {
+    const response = await identityRequests.searchStudents(text)
+
+    return response.map((item) => ({
+      id: item.id,
+      name: item.name,
+      username: item.login,
+      classrooms: item.classrooms.map((classroom) => ({ id: classroom.id, name: classroom.name })),
+    }))
+  },
+
+  async enrol(classroomId: string, studentId: string): Promise<void> {
+    await identityRequests.enrolStudent(classroomId, studentId)
   },
 }

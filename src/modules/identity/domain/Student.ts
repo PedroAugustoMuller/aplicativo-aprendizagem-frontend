@@ -19,3 +19,11 @@ export interface Credential {
   readonly username: string
   readonly temporaryPassword: string
 }
+
+/** An existing student found by search, with the active classes they are already in. */
+export interface StudentMatch {
+  readonly id: string
+  readonly name: string
+  readonly username: string
+  readonly classrooms: readonly { readonly id: string; readonly name: string }[]
+}

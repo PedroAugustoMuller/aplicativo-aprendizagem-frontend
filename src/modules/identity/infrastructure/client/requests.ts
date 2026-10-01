@@ -13,6 +13,7 @@ import type {
   SubjectOptionResponse,
 } from '@/modules/identity/infrastructure/interfaces/ClassroomResponse'
 import type { CredentialResponse } from '@/modules/identity/infrastructure/interfaces/CredentialResponse'
+import type { StudentMatchResponse } from '@/modules/identity/infrastructure/interfaces/StudentMatchResponse'
 
 export const identityRequests = {
   login: (data: { login: string; password: string }) =>
@@ -79,4 +80,10 @@ export const identityRequests = {
 
   listCredentials: (classroomId: string) =>
     api.get<CredentialResponse[]>({ url: identityRoutes.classroomCredentials, urlParams: { classroomId } }),
+
+  searchStudents: (text: string) =>
+    api.get<StudentMatchResponse[]>({ url: identityRoutes.students, queryParams: { search: text } }),
+
+  enrolStudent: (classroomId: string, studentId: string) =>
+    api.put<ClassroomResponse>({ url: identityRoutes.classroomStudent, urlParams: { classroomId, studentId } }),
 }

@@ -116,6 +116,15 @@ export default {
     print: 'Print',
     empty: 'No pending access slips in this class.',
   },
+  search: {
+    title: 'Add an existing student',
+    label: 'Name or username',
+    hint: 'Type at least 2 letters.',
+    none: 'No students found.',
+    alreadyIn: 'Already in this class',
+    submit: 'Enrol ({count})',
+    failures: 'Could not enrol: {names}',
+  },
   offline: {
     banner: 'Offline — showing data saved at {time}.',
     writeDisabled: 'Only available when online',
