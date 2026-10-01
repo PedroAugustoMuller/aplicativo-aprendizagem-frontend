@@ -12,6 +12,9 @@ export default {
     retry: 'Try again',
     loading: 'Loading…',
     empty: 'Nothing here yet.',
+    cancel: 'Cancel',
+    close: 'Close',
+    save: 'Save',
   },
   auth: {
     title: 'Sign in',
@@ -39,6 +42,10 @@ export default {
     fallbackTitle: 'Topics',
     empty: 'No topics registered yet.',
     back: 'Subjects',
+  },
+  offline: {
+    banner: 'Offline — showing data saved at {time}.',
+    writeDisabled: 'Only available when online',
   },
   errors: {
     api: {

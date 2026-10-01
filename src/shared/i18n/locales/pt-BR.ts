@@ -12,6 +12,9 @@ export default {
     retry: 'Tentar novamente',
     loading: 'Carregando…',
     empty: 'Nada por aqui ainda.',
+    cancel: 'Cancelar',
+    close: 'Fechar',
+    save: 'Salvar',
   },
   auth: {
     title: 'Entrar',
@@ -39,6 +42,10 @@ export default {
     fallbackTitle: 'Conteúdos',
     empty: 'Nenhum conteúdo cadastrado ainda.',
     back: 'Matérias',
+  },
+  offline: {
+    banner: 'Sem conexão — mostrando dados salvos às {time}.',
+    writeDisabled: 'Disponível apenas com conexão',
   },
   errors: {
     api: {

@@ -6,6 +6,7 @@ import { router } from '@/shared/router'
 import { createUnauthorizedHandler } from '@/shared/router/guard'
 import { i18n } from '@/shared/i18n'
 import { configureApiSession } from '@/shared/api/client'
+import { configureOffline } from '@/shared/offline/readThrough'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 
 const app = createApp(App)
@@ -23,6 +24,9 @@ configureApiSession({
   // auth (see unauthorizedRedirect). On first load the guard owns the redirect.
   onUnauthorized: createUnauthorizedHandler(() => session, router),
 })
+
+// Saved lists are per user, so the offline cache needs to know who is signed in.
+configureOffline({ userId: () => session.knownUser?.userId ?? null })
 
 app.use(router)
 app.mount('#app')

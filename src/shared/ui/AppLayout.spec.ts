@@ -11,6 +11,8 @@ import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { i18n } from '@/shared/i18n'
+import { configureOffline, readThrough } from '@/shared/offline/readThrough'
+import { createMemoryStorage } from '@/shared/offline/storage'
 
 // shared/ui may reach a module only through application/ and presentation/, so
 // the repository is mocked by path rather than imported.
@@ -74,5 +76,19 @@ describe('AppLayout', () => {
     expect(useSubjectStore().subjects).toEqual([])
     expect(useTopicStore().topics).toEqual([])
     expect(useTopicStore().subjectId).toBeNull()
+  })
+
+  it('wipes the previous user\'s saved lists from this phone when the session ends', async () => {
+    const storage = createMemoryStorage()
+    const session = useSessionStore()
+    configureOffline({ userId: () => session.knownUser?.userId ?? null, storage })
+    session.$patch({ token: 'tok', user: user(false) })
+    await readThrough('identity:teachers', async () => ['Bruno'])
+    await render()
+
+    session.clear()
+    await flushPromises()
+
+    expect(await storage.keys()).toEqual([])
   })
 })

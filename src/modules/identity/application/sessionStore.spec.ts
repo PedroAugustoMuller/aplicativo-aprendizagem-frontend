@@ -203,4 +203,43 @@ describe('sessionStore', () => {
     expect(outcome).toBe('skipped')
     expect(authRepository.currentUser).not.toHaveBeenCalled()
   })
+
+  it('remembers who confirmed the session, for an offline reload', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue(ANA_SESSION)
+    await useSessionStore().login(ANA_CREDENTIALS)
+
+    // A reload: a fresh store, the server not reached yet.
+    setActivePinia(createPinia())
+    const store = useSessionStore()
+
+    expect(store.user).toBeNull()
+    expect(store.knownUser).toEqual(ANA)
+  })
+
+  it('updates the remembered user when the server confirms the session', async () => {
+    tokenStorage.write('persisted')
+    vi.mocked(authRepository.currentUser).mockResolvedValue({ ...ANA, name: 'Ana Maria' })
+
+    await useSessionStore().restore()
+    setActivePinia(createPinia())
+
+    expect(useSessionStore().knownUser?.name).toBe('Ana Maria')
+  })
+
+  it('forgets the remembered user when the session ends', async () => {
+    vi.mocked(authRepository.login).mockResolvedValue(ANA_SESSION)
+    const store = useSessionStore()
+    await store.login(ANA_CREDENTIALS)
+
+    store.clear()
+    setActivePinia(createPinia())
+
+    expect(useSessionStore().knownUser).toBeNull()
+  })
+
+  it('ignores a remembered user that is not well formed', () => {
+    localStorage.setItem('dp2.auth.user', '{"userId":1}')
+
+    expect(useSessionStore().knownUser).toBeNull()
+  })
 })

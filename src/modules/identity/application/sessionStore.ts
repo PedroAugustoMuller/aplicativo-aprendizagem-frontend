@@ -17,6 +17,7 @@ export type RestoreOutcome = 'restored' | 'rejected' | 'unavailable' | 'skipped'
 export const useSessionStore = defineStore('session', () => {
   const token = ref<string | null>(tokenStorage.read())
   const user = ref<AuthenticatedUser | null>(null)
+  const rememberedUser = ref<AuthenticatedUser | null>(tokenStorage.readUser())
   const restoring = ref(false)
   let inFlight: Promise<RestoreOutcome> | null = null
 
@@ -29,12 +30,21 @@ export const useSessionStore = defineStore('session', () => {
   // False while the user is unknown (e.g. an offline reload): pages then show the
   // backend's own 403 until restore() succeeds and the guard can redirect.
   const mustChangePassword = computed(() => user.value?.mustChangePassword === true)
+  // The confirmed user, else the one remembered from the last confirmation. Used
+  // for offline reads and the menu only; the guard keeps relying on `user`.
+  const knownUser = computed(() => user.value ?? rememberedUser.value)
+
+  function remember(next: AuthenticatedUser): void {
+    user.value = next
+    rememberedUser.value = next
+    tokenStorage.writeUser(next)
+  }
 
   async function login(credentials: Credentials): Promise<void> {
     const { token: issued, ...authenticated } = await authRepository.login(credentials)
 
     token.value = issued
-    user.value = authenticated
+    remember(authenticated)
     tokenStorage.write(issued)
   }
 
@@ -43,13 +53,14 @@ export const useSessionStore = defineStore('session', () => {
 
     // The backend keeps this token and revokes the others; the session stays valid.
     if (user.value !== null) {
-      user.value = { ...user.value, mustChangePassword: false }
+      remember({ ...user.value, mustChangePassword: false })
     }
   }
 
   function clear(): void {
     token.value = null
     user.value = null
+    rememberedUser.value = null
     tokenStorage.clear()
   }
 
@@ -78,7 +89,7 @@ export const useSessionStore = defineStore('session', () => {
 
     inFlight = (async (): Promise<RestoreOutcome> => {
       try {
-        user.value = await authRepository.currentUser()
+        remember(await authRepository.currentUser())
 
         return 'restored'
       } catch (failure: unknown) {
@@ -107,6 +118,7 @@ export const useSessionStore = defineStore('session', () => {
     hasSession,
     isAuthenticated,
     mustChangePassword,
+    knownUser,
     login,
     logout,
     clear,

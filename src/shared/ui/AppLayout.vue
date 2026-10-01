@@ -8,6 +8,7 @@ import { useAppTheme } from '@/shared/theme/useAppTheme'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
+import { clearOfflineData } from '@/shared/offline/readThrough'
 
 const { mobile } = useDisplay()
 const { t } = useI18n()
@@ -31,6 +32,16 @@ watch(
     if (!hasSession) {
       subjects.reset()
       topics.reset()
+    }
+  },
+)
+
+// The previous user's saved lists leave this phone with their session.
+watch(
+  () => session.knownUser?.userId ?? null,
+  (current, previous) => {
+    if (previous !== null && previous !== current) {
+      void clearOfflineData(previous)
     }
   },
 )
