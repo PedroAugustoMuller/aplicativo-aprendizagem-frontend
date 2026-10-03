@@ -4,6 +4,7 @@ import { useQuizStore } from '@/modules/quiz/application/quizStore'
 import { quizRepository } from '@/modules/quiz/infrastructure/HttpQuizRepository'
 import { quizVault } from '@/modules/quiz/infrastructure/persistence/quizVault'
 import { configureViewerId } from '@/shared/auth/viewer'
+import { withResult } from '@/modules/quiz/domain/playState'
 import { ApiError } from '@/shared/api/error'
 import type { Attempt } from '@/modules/quiz/domain/Attempt'
 import type * as VaultModule from '@/modules/quiz/infrastructure/persistence/quizVault'
@@ -145,5 +146,35 @@ describe('quizStore', () => {
     await store.refreshTopic('t-1')
 
     expect(store.openByTopic['t-1']?.attemptId).toBe('a-1')
+  })
+
+  it('answers on top of the saved copy, not a stale one in memory', async () => {
+    vi.mocked(quizRepository.start).mockResolvedValue(ATTEMPT)
+    vi.mocked(quizRepository.get).mockRejectedValue(new ApiError('api.network_unavailable'))
+    vi.mocked(quizRepository.answer).mockRejectedValue(new ApiError('api.network_unavailable'))
+    const store = useQuizStore()
+    await store.prepare('t-1', CONTEXT)
+    await store.open('a-1')
+    // Another tab graded q1 meanwhile; this tab's memory still has it unanswered.
+    const saved = await quizVault.readQuiz('u-1', 'a-1')
+    await quizVault.writeQuiz('u-1', withResult(saved!, graded('q1').result))
+
+    await store.answer('q2', 'q2-v')
+
+    expect((await quizVault.readQuiz('u-1', 'a-1'))?.answers.q1).toMatchObject({ status: 'graded' })
+  })
+
+  it('queues one answer when Responder is tapped twice', async () => {
+    vi.mocked(quizRepository.start).mockResolvedValue(ATTEMPT)
+    vi.mocked(quizRepository.get).mockRejectedValue(new ApiError('api.network_unavailable'))
+    vi.mocked(quizRepository.answer).mockRejectedValue(new ApiError('api.network_unavailable'))
+    vi.mocked(globalThis.crypto.randomUUID).mockReturnValueOnce('00000000-0000-4000-8000-00000000000a').mockReturnValueOnce('00000000-0000-4000-8000-00000000000b')
+    const store = useQuizStore()
+    await store.prepare('t-1', CONTEXT)
+    await store.open('a-1')
+
+    await Promise.all([store.answer('q1', 'q1-v'), store.answer('q1', 'q1-f')])
+
+    await expect(quizVault.outbox('u-1')).resolves.toHaveLength(1)
   })
 })

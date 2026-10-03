@@ -1,6 +1,6 @@
 import { ApiError } from '@/shared/api/error'
 import { fromServer, withFailure, withResult, type SavedQuiz } from '@/modules/quiz/domain/playState'
-import type { PendingAnswer } from '@/modules/quiz/domain/Attempt'
+import type { AnswerOutcome, PendingAnswer } from '@/modules/quiz/domain/Attempt'
 import type { QuizRepository } from '@/modules/quiz/domain/QuizRepository'
 import type { QuizVault } from '@/modules/quiz/infrastructure/persistence/quizVault'
 
@@ -19,7 +19,19 @@ const FLUSH_LOCK = 'dp2-quiz-flush'
 // Held only around a read-modify-write of the outbox: a new answer is saved at once,
 // even while a flush waits on the network.
 const OUTBOX_LOCK = 'dp2-quiz-outbox'
-const NETWORK_FAILURES = new Set(['api.network_unavailable', 'api.request_timeout'])
+// Held around every read-modify-write of a saved quiz, in any tab: a flush and a new
+// answer never write over each other.
+export const STATE_LOCK = 'dp2-quiz-state'
+// The only answers worth dropping: the server understood them and said no for good.
+// Anything else (no network, 5xx, 429, a gateway page, a password reset) is kept and
+// retried later, because the server never recorded it.
+const PERMANENT_REFUSALS = new Set([
+  'quiz.answer.invalid_option',
+  'quiz.attempt_not_found',
+  'auth.forbidden',
+  'validation.failed',
+  'system.idempotency_conflict',
+])
 
 type Step = 'sent' | 'offline' | 'unauthorized'
 
@@ -27,11 +39,11 @@ const asApiError = (failure: unknown): ApiError =>
   failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
 
 function stopFor(error: ApiError): Step | null {
-  if (NETWORK_FAILURES.has(error.code)) {
-    return 'offline'
+  if (error.isUnauthorized()) {
+    return 'unauthorized'
   }
 
-  return error.isUnauthorized() ? 'unauthorized' : null
+  return PERMANENT_REFUSALS.has(error.code) ? null : 'offline'
 }
 
 export function enqueue(deps: SyncDeps, userId: string, entry: PendingAnswer): Promise<void> {
@@ -47,15 +59,22 @@ function dequeue(deps: SyncDeps, userId: string, answerId: string): Promise<void
 }
 
 async function updateQuiz(deps: SyncDeps, userId: string, attemptId: string, change: (quiz: SavedQuiz) => SavedQuiz): Promise<void> {
-  const saved = await deps.vault.readQuiz(userId, attemptId)
+  const next = await deps.lock(STATE_LOCK, async () => {
+    const saved = await deps.vault.readQuiz(userId, attemptId)
 
-  if (saved === null) {
-    return
+    if (saved === null) {
+      return null
+    }
+
+    const changed = change(saved)
+    await deps.vault.writeQuiz(userId, changed)
+
+    return changed
+  })
+
+  if (next !== null) {
+    deps.onUpdated(next)
   }
-
-  const next = change(saved)
-  await deps.vault.writeQuiz(userId, next)
-  deps.onUpdated(next)
 }
 
 /** The question was answered on another device or tab: the server's answer is the answer. */
@@ -85,28 +104,35 @@ async function adoptServer(deps: SyncDeps, userId: string, entry: PendingAnswer)
 }
 
 async function send(deps: SyncDeps, userId: string, entry: PendingAnswer): Promise<Step> {
-  try {
-    const outcome = await deps.repository.answer(entry)
-    await updateQuiz(deps, userId, entry.attemptId, (quiz) => withResult(quiz, outcome.result))
+  let outcome: AnswerOutcome
 
-    return 'sent'
+  try {
+    outcome = await deps.repository.answer(entry)
   } catch (failure: unknown) {
     const error = asApiError(failure)
+
+    // Answered on another device or tab: not a refusal, the server's answer wins.
+    if (error.code === 'quiz.question.already_answered') {
+      return adoptServer(deps, userId, entry)
+    }
+
     const stop = stopFor(error)
 
     if (stop !== null) {
       return stop
     }
 
-    if (error.code === 'quiz.question.already_answered') {
-      return adoptServer(deps, userId, entry)
-    }
-
-    // Retrying cannot fix any other answer: drop it and say why on that question.
+    // The server refused it for good: drop it and say why on that question.
     await updateQuiz(deps, userId, entry.attemptId, (quiz) => withFailure(quiz, entry.questionId, error.code))
 
     return 'sent'
   }
+
+  // Outside the try: failing to save the result is not the server refusing the answer.
+  // The entry stays queued and the resend is answered idempotently.
+  await updateQuiz(deps, userId, entry.attemptId, (quiz) => withResult(quiz, outcome.result))
+
+  return 'sent'
 }
 
 /** Sends queued answers oldest first; stops at the first sign the network or session is gone. */

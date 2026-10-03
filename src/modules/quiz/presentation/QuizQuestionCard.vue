@@ -108,7 +108,7 @@ function color(optionId: string): string | undefined {
         color="primary"
         variant="flat"
         size="large"
-        :disabled="selected === null"
+        :disabled="selected === null || sending"
         data-testid="quiz-submit"
         @click="submit"
       >

@@ -127,4 +127,40 @@ describe('quizSync', () => {
   it('does nothing without a user', async () => {
     await expect(flushOutbox(deps, null)).resolves.toBe('skipped')
   })
+
+  it.each([
+    ['system.unexpected_error', 500],
+    ['http.too_many_requests', 429],
+    ['http.error', 503],
+    ['api.unexpected_response', 502],
+    ['identity.password_change_required', 403],
+  ])('keeps an answer the server could not take right now (%s)', async (code, status) => {
+    await seed('q1')
+    repository.answer.mockRejectedValue(new ApiError(code, {}, status))
+
+    await expect(flushOutbox(deps, 'u-1')).resolves.toBe('offline')
+
+    await expect(vault.outbox('u-1')).resolves.toHaveLength(1)
+    expect((await vault.readQuiz('u-1', 'a-1'))?.answers.q1).toEqual({ status: 'pending', optionId: 'q1-v' })
+  })
+
+  it('never marks a graded answer as failed because saving the result failed', async () => {
+    await seed('q1')
+    repository.answer.mockResolvedValue({ result: result('q1'), score: ATTEMPT.score, completed: false })
+    const write = vault.writeQuiz.bind(vault)
+    let failOnce = true
+    vault.writeQuiz = async (userId, quiz) => {
+      if (failOnce) {
+        failOnce = false
+        throw new Error('quota exceeded')
+      }
+
+      await write(userId, quiz)
+    }
+
+    await expect(flushOutbox(deps, 'u-1')).rejects.toThrow('quota exceeded')
+
+    await expect(vault.outbox('u-1')).resolves.toHaveLength(1)
+    expect((await vault.readQuiz('u-1', 'a-1'))?.answers.q1).toEqual({ status: 'pending', optionId: 'q1-v' })
+  })
 })

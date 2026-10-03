@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { quizRepository } from '@/modules/quiz/infrastructure/HttpQuizRepository'
 import { quizVault } from '@/modules/quiz/infrastructure/persistence/quizVault'
 import { withLock } from '@/modules/quiz/infrastructure/persistence/locks'
-import { enqueue, flushOutbox, type SyncDeps, type SyncOutcome } from '@/modules/quiz/application/quizSync'
+import { enqueue, flushOutbox, STATE_LOCK, type SyncDeps, type SyncOutcome } from '@/modules/quiz/application/quizSync'
 import { fromServer, isFinished, progress, withPending, type QuizContext, type SavedQuiz } from '@/modules/quiz/domain/playState'
 import { viewerId } from '@/shared/auth/viewer'
 import { ApiError } from '@/shared/api/error'
@@ -27,6 +27,8 @@ export const useQuizStore = defineStore('quiz', () => {
   const pendingCount = ref(0)
   const sendingQuestion = ref<string | null>(null)
   const openByTopic = ref<Record<string, OpenQuiz>>({})
+  // Questions whose answer is being saved right now, in this tab.
+  const answering = new Set<string>()
   // Only the latest open() may write results; an older, slower one loses.
   let latest = 0
 
@@ -140,35 +142,48 @@ export const useQuizStore = defineStore('quiz', () => {
     const current = quiz.value
     const userId = viewerId()
 
-    if (current === null || userId === null || current.answers[questionId] !== undefined) {
+    // Checked and set before any await: a double tap must not queue two answers.
+    if (current === null || userId === null || current.answers[questionId] !== undefined || answering.has(questionId)) {
       return
     }
 
-    const entry: PendingAnswer = {
-      attemptId: current.attempt.id,
-      answerId: globalThis.crypto.randomUUID(),
-      questionId,
-      optionId,
-      answeredAt: new Date().toISOString(),
-    }
-    const next = withPending(current, questionId, optionId)
-
-    // On the device before any network call: a dropped connection loses nothing.
-    await quizVault.writeQuiz(userId, next)
-    await enqueue(deps, userId, entry)
-
-    if (isFinished(next)) {
-      await quizVault.setOpen(userId, next.attempt.topicId, null)
-    }
-
-    quiz.value = next
-    await refreshTopic(next.attempt.topicId)
-
+    answering.add(questionId)
     sendingQuestion.value = questionId
 
     try {
+      const entry: PendingAnswer = {
+        attemptId: current.attempt.id,
+        answerId: globalThis.crypto.randomUUID(),
+        questionId,
+        optionId,
+        answeredAt: new Date().toISOString(),
+      }
+
+      // Built on the saved copy, not this tab's memory, which another tab or a
+      // flush may have moved on. On the device before any network call.
+      const next = await withLock(STATE_LOCK, async () => {
+        const saved = (await quizVault.readQuiz(userId, current.attempt.id)) ?? current
+
+        if (saved.answers[questionId] !== undefined) {
+          return saved
+        }
+
+        const pending = withPending(saved, questionId, optionId)
+        await quizVault.writeQuiz(userId, pending)
+        await enqueue(deps, userId, entry)
+
+        return pending
+      })
+
+      if (isFinished(next)) {
+        await quizVault.setOpen(userId, next.attempt.topicId, null)
+      }
+
+      quiz.value = next
+      await refreshTopic(next.attempt.topicId)
       await sync()
     } finally {
+      answering.delete(questionId)
       sendingQuestion.value = null
     }
   }

@@ -45,7 +45,14 @@ async function startNew(): Promise<void> {
 
   try {
     const id = await store.prepare(saved.attempt.topicId, { topicName: saved.topicName, subjectId: saved.subjectId })
-    await router.push(`/quiz/${id}`)
+
+    if (id === attemptId.value) {
+      // The server handed back this same attempt (it still has unanswered questions):
+      // the URL does not change, so reopen it in place.
+      await load(id)
+    } else {
+      await router.push(`/quiz/${id}`)
+    }
   } catch (failure: unknown) {
     startError.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
   } finally {
@@ -54,16 +61,14 @@ async function startNew(): Promise<void> {
 }
 
 // Same instance across /quiz/a -> /quiz/b (Novo quiz): watch the param.
-watch(
-  attemptId,
-  async (id) => {
-    await store.open(id)
-    index.value = store.quiz === null ? 0 : firstUnanswered(store.quiz)
-    // Opening a quiz is a moment to send what an earlier visit left queued.
-    void store.sync()
-  },
-  { immediate: true },
-)
+async function load(id: string): Promise<void> {
+  await store.open(id)
+  index.value = store.quiz === null ? 0 : firstUnanswered(store.quiz)
+  // Opening a quiz is a moment to send what an earlier visit left queued.
+  void store.sync()
+}
+
+watch(attemptId, load, { immediate: true })
 </script>
 
 <template>

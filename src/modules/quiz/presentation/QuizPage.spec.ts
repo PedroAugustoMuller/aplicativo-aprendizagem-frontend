@@ -147,4 +147,20 @@ describe('QuizPage', () => {
 
     expect(wrapper.find('[data-testid="quiz-error"]').text()).toContain('Não encontramos este quiz.')
   })
+
+  it('lets a quiz whose answers the server refused be taken again from the results', async () => {
+    answer.mockRejectedValue(new ApiError('quiz.answer.invalid_option', {}, 422))
+    const { wrapper } = await render()
+    await respond(wrapper, 0)
+    await wrapper.find('[data-testid="quiz-next"]').trigger('click')
+    await respond(wrapper, 0)
+    await wrapper.find('[data-testid="quiz-next"]').trigger('click')
+    expect(wrapper.find('[data-testid="quiz-results"]').exists()).toBe(true)
+
+    // The server still has this attempt open, so "Novo quiz" hands it back.
+    await wrapper.find('[data-testid="quiz-new"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="quiz-progress-label"]').text()).toBe('Questão 1 de 2')
+  })
 })

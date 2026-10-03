@@ -26,7 +26,7 @@ export interface Progress {
   readonly failed: number
 }
 
-/** Server results win; a local answer survives only where the server has none yet. */
+/** Server results win; a local pending answer survives only where the server has none yet. */
 export function fromServer(attempt: Attempt, previous: SavedQuiz | null, context?: QuizContext): SavedQuiz {
   const answers: Record<string, AnswerState> = {}
 
@@ -35,7 +35,8 @@ export function fromServer(attempt: Attempt, previous: SavedQuiz | null, context
 
     if (question.result !== null) {
       answers[question.id] = { status: 'graded', optionId: question.result.optionId, result: question.result }
-    } else if (local !== undefined) {
+    } else if (local !== undefined && local.status !== 'failed') {
+      // A failed send left the question unanswered on the server: it can be answered again.
       answers[question.id] = local
     }
   }

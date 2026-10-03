@@ -62,4 +62,13 @@ describe('playState', () => {
 
     expect(withFailure(quiz, 'q1', 'x')).toBe(quiz)
   })
+
+  it('lets a question whose send failed be answered again while the server has no answer for it', () => {
+    const failed = withFailure(withPending(fromServer(attempt([question('q1', 0)]), null, CONTEXT), 'q1', 'q1-v'), 'q1', 'quiz.answer.invalid_option')
+
+    const reopened = fromServer(attempt([question('q1', 0)]), failed)
+
+    expect(reopened.answers.q1).toBeUndefined()
+    expect(isFinished(reopened)).toBe(false)
+  })
 })
