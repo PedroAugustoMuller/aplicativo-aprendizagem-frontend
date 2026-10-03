@@ -14,6 +14,9 @@ import { useQuestionStore } from '@/modules/content/application/questionStore'
 import { i18n } from '@/shared/i18n'
 import { configureOffline, readThrough } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
+import { useQuizStore } from '@/modules/quiz/application/quizStore'
+import { configureViewerId } from '@/shared/auth/viewer'
+import { ApiError } from '@/shared/api/error'
 
 // shared/ui may reach a module only through application/ and presentation/, so
 // the repository is mocked by path rather than imported.
@@ -25,6 +28,8 @@ vi.mock('@/modules/identity/infrastructure/HttpTeacherRepository', () => ({ teac
 vi.mock('@/modules/identity/infrastructure/HttpClassroomRepository', () => ({ classroomRepository: { list: vi.fn() } }))
 vi.mock('@/modules/identity/infrastructure/HttpStudentRepository', () => ({ studentRepository: { listByClassroom: vi.fn(), search: vi.fn(), enrol: vi.fn() } }))
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject: vi.fn() } }))
+const quizApi = vi.hoisted(() => ({ start: vi.fn(), get: vi.fn(), answer: vi.fn() }))
+vi.mock('@/modules/quiz/infrastructure/HttpQuizRepository', () => ({ quizRepository: quizApi }))
 
 const vuetify = createVuetify({ components, directives })
 const Stub = defineComponent({ render: () => null })
@@ -44,7 +49,108 @@ const user = (mustChangePassword: boolean, role: 'admin' | 'teacher' | 'student'
 }) as const
 
 describe('AppLayout', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(async () => {
+    setActivePinia(createPinia())
+    vi.resetAllMocks()
+    const session = useSessionStore()
+    configureViewerId(() => session.knownUser?.userId ?? null)
+    session.$patch({ token: 'tok', user: user(false, 'student') })
+    await useQuizStore().discardDeviceData()
+    session.$patch({ token: null, user: null })
+  })
+
+  const offline = () => Promise.reject(new ApiError('api.network_unavailable'))
+
+  /** One answer saved on the device and not sent: the quiz store's own offline path. */
+  async function queueOneAnswer(): Promise<void> {
+    quizApi.start.mockResolvedValue({
+      id: 'a-1', topicId: 't-1', startedAt: 's', completedAt: null, score: { total: 2, answered: 0, correct: 0 },
+      questions: ['q1', 'q2'].map((id, position) => ({
+        id, position, type: 'true_false', statement: id, options: [{ id: `${id}-v`, text: 'Verdadeiro' }, { id: `${id}-f`, text: 'Falso' }], result: null,
+      })),
+    })
+    quizApi.get.mockImplementation(offline)
+    quizApi.answer.mockImplementation(offline)
+    const quiz = useQuizStore()
+    await quiz.prepare('t-1', { topicName: 'T', subjectId: 's-1' })
+    await quiz.open('a-1')
+    await quiz.answer('q1', 'q1-v')
+  }
+
+  async function unsentCount(): Promise<number> {
+    const quiz = useQuizStore()
+    await quiz.refreshPending()
+
+    return quiz.pendingCount
+  }
+
+  it('shows how many answers wait to be sent', async () => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    await queueOneAnswer()
+
+    const wrapper = await render()
+
+    expect(wrapper.find('[data-testid="quiz-pending-chip"]').text()).toBe('1 resposta aguardando envio')
+  })
+
+  it('sends queued answers when the connection comes back', async () => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    await queueOneAnswer()
+    await render()
+    quizApi.answer.mockResolvedValue({
+      result: { questionId: 'q1', optionId: 'q1-v', correct: true, correctOptionId: 'q1-v', explanation: null },
+      score: { total: 2, answered: 1, correct: 1 },
+      completed: false,
+    })
+
+    globalThis.dispatchEvent(new Event('online'))
+    await flushPromises()
+
+    expect(await unsentCount()).toBe(0)
+  })
+
+  it('asks before signing out with unsent answers, and can stay', async () => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    await queueOneAnswer()
+    const wrapper = await render()
+
+    await wrapper.find('[data-testid="sign-out"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="sign-out-pending"]').text()).toContain('Há 1 resposta que ainda não foi enviada.')
+    await wrapper.find('[data-testid="sign-out-pending-stay"]').trigger('click')
+    await flushPromises()
+    expect(useSessionStore().hasSession).toBe(true)
+    expect(await unsentCount()).toBe(1)
+  })
+
+  it('drops unsent answers only when the user insists on signing out', async () => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    await queueOneAnswer()
+    const wrapper = await render()
+
+    await wrapper.find('[data-testid="sign-out"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-testid="sign-out-pending-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(useSessionStore().hasSession).toBe(false)
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    expect(await unsentCount()).toBe(0)
+  })
+
+  it('keeps unsent answers when the session merely expires', async () => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    await queueOneAnswer()
+    await render()
+
+    useSessionStore().clear()
+    await flushPromises()
+
+    expect(useQuizStore().pendingCount).toBe(0)
+    useSessionStore().$patch({ token: 'tok', user: user(false, 'student') })
+    expect(await unsentCount()).toBe(1)
+  })
 
   it('shows the navigation to a signed-in user', async () => {
     useSessionStore().$patch({ token: 'tok', user: user(false) })
