@@ -10,16 +10,13 @@ import TopicsPage from '@/modules/content/presentation/TopicsPage.vue'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
 
-const { listSubjects, listBySubject } = vi.hoisted(() => ({
-  listSubjects: vi.fn(),
-  listBySubject: vi.fn(),
-}))
+const { listSubjects, listBySubject, create, update, deactivate, reactivate, reorder } = vi.hoisted(() => ({ listSubjects: vi.fn(), listBySubject: vi.fn(), create: vi.fn(), update: vi.fn(), deactivate: vi.fn(), reactivate: vi.fn(), reorder: vi.fn() }))
 
 vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
   subjectRepository: { list: listSubjects },
 }))
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({
-  topicRepository: { listBySubject },
+  topicRepository: { listBySubject, create, update, deactivate, reactivate, reorder },
 }))
 
 const vuetify = createVuetify({ components, directives })
@@ -28,8 +25,8 @@ const Stub = { render: () => null }
 const App = { render: () => h(RouterView) }
 
 const SUBJECTS = [
-  { id: 's-1', name: 'Química', active: true },
-  { id: 's-2', name: 'Biologia', active: true },
+  { id: 's-1', name: 'Química', active: true, canAuthor: false },
+  { id: 's-2', name: 'Biologia', active: true, canAuthor: false },
 ]
 
 async function render(path: string) {
@@ -38,6 +35,7 @@ async function render(path: string) {
     routes: [
       { path: '/subjects', component: Stub },
       { path: '/subjects/:subjectId/topics', component: TopicsPage },
+      { path: '/subjects/:subjectId/topics/:topicId/questions', component: Stub },
     ],
   })
   await router.push(path)
@@ -52,6 +50,7 @@ describe('TopicsPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
     listSubjects.mockResolvedValue(SUBJECTS)
   })
 
@@ -126,5 +125,122 @@ describe('TopicsPage', () => {
 
     expect(listBySubject).toHaveBeenLastCalledWith('s-1')
     expect(wrapper.find('[data-testid="topics-list"]').exists()).toBe(true)
+  })
+
+  describe('for an author', () => {
+    const ATOMS = { id: 't-1', name: 'Átomos', description: 'x', position: 0, active: true, questionCount: 3 }
+    const IONS = { id: 't-2', name: 'Íons', description: '', position: 1, active: false, questionCount: 0 }
+
+    beforeEach(() => {
+      listSubjects.mockResolvedValue([{ id: 's-1', name: 'Química', active: true, canAuthor: true }])
+    })
+
+    it('shows counts, the inactive mark, and links each card to its questions', async () => {
+      listBySubject.mockResolvedValue([ATOMS, IONS])
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+
+      expect(wrapper.find('[data-testid="topic-t-1"]').attributes('href')).toBe('/subjects/s-1/topics/t-1/questions')
+      expect(wrapper.find('[data-testid="topic-t-1"] [data-testid="topic-question-count"]').text()).toBe('3 questões')
+      expect(wrapper.find('[data-testid="topic-t-2"] [data-testid="topic-question-count"]').text()).toBe('Sem questões')
+      expect(wrapper.find('[data-testid="topic-t-2"] [data-testid="topic-inactive"]').text()).toBe('Desativado')
+      expect(wrapper.find('[data-testid="topic-toggle-t-2"]').text()).toContain('Reativar')
+    })
+
+    it('can create the first topic of an empty subject', async () => {
+      listBySubject.mockResolvedValue([])
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+
+      expect(wrapper.find('[data-testid="topics-empty"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="topics-create"]').exists()).toBe(true)
+    })
+
+    it('creates a topic, keeping the same id when retrying', async () => {
+      listBySubject.mockResolvedValue([])
+      create.mockRejectedValueOnce(new ApiError('api.request_timeout'))
+      create.mockResolvedValueOnce(ATOMS)
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+      await wrapper.find('[data-testid="topics-create"]').trigger('click')
+      await wrapper.find('[data-testid="topic-form-name"] input').setValue(' Átomos ')
+      await wrapper.find('[data-testid="topic-form-save"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="topic-form-error"]').exists()).toBe(true)
+
+      await wrapper.find('[data-testid="topic-form-save"]').trigger('click')
+      await flushPromises()
+
+      expect(create).toHaveBeenCalledTimes(2)
+      expect(create.mock.calls[0]?.[1]).toBe(create.mock.calls[1]?.[1])
+      expect(create.mock.calls[0]?.[0]).toBe('s-1')
+      expect(create.mock.calls[0]?.[2]).toEqual({ name: 'Átomos', description: '' })
+      expect(wrapper.find('[data-testid="topic-form"]').exists()).toBe(false)
+    })
+
+    it('moves a topic up, and cannot move past either end', async () => {
+      listBySubject.mockResolvedValue([ATOMS, IONS])
+      reorder.mockResolvedValue([IONS, ATOMS])
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+      expect(wrapper.find('[data-testid="topic-up-t-1"]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('[data-testid="topic-down-t-2"]').attributes('disabled')).toBeDefined()
+
+      await wrapper.find('[data-testid="topic-up-t-2"]').trigger('click')
+      await flushPromises()
+
+      expect(reorder).toHaveBeenCalledWith('s-1', ['t-2', 't-1'])
+    })
+
+    it('explains a stale order after reloading the list', async () => {
+      listBySubject.mockResolvedValue([ATOMS, IONS])
+      reorder.mockRejectedValue(new ApiError('content.topic.order_stale', {}, 409))
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+      await wrapper.find('[data-testid="topic-up-t-2"]').trigger('click')
+      await flushPromises()
+
+      expect(listBySubject).toHaveBeenCalledTimes(2)
+      expect(wrapper.find('[data-testid="topics-action-error"]').text()).toContain('A ordem dos conteúdos mudou')
+    })
+
+    it('asks before deactivating and reactivates at once', async () => {
+      listBySubject.mockResolvedValue([ATOMS, IONS])
+      deactivate.mockResolvedValue({ ...ATOMS, active: false })
+      reactivate.mockResolvedValue({ ...IONS, active: true })
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+      await wrapper.find('[data-testid="topic-toggle-t-1"]').trigger('click')
+      expect(deactivate).not.toHaveBeenCalled()
+      await wrapper.find('[data-testid="topic-deactivate-dialog-confirm"]').trigger('click')
+      await flushPromises()
+      await wrapper.find('[data-testid="topic-toggle-t-2"]').trigger('click')
+      await flushPromises()
+
+      expect(deactivate).toHaveBeenCalledWith('t-1')
+      expect(reactivate).toHaveBeenCalledWith('t-2')
+    })
+
+    it('disables every change while offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+      listBySubject.mockResolvedValue([ATOMS])
+
+      const { wrapper } = await render('/subjects/s-1/topics')
+
+      expect(wrapper.find('[data-testid="topics-create"]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('[data-testid="topic-edit-t-1"]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('[data-testid="topic-toggle-t-1"]').attributes('disabled')).toBeDefined()
+    })
+  })
+
+  it('shows a non-author no authoring controls and no counts', async () => {
+    listBySubject.mockResolvedValue([{ id: 't-1', name: 'Átomos', description: 'x', position: 0, active: true, questionCount: null }])
+
+    const { wrapper } = await render('/subjects/s-1/topics')
+
+    expect(wrapper.find('[data-testid="topics-create"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="topic-edit-t-1"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="topic-question-count"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="topic-t-1"]').attributes('href')).toBeUndefined()
   })
 })
