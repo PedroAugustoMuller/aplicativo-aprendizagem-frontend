@@ -60,6 +60,18 @@ export const router = createRouter({
       component: () => import('@/modules/content/presentation/QuestionsPage.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
+    {
+      path: '/subjects/:subjectId/topics/:topicId/questions/new',
+      name: 'question-new',
+      component: () => import('@/modules/content/presentation/QuestionFormPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
+      path: '/subjects/:subjectId/topics/:topicId/questions/:questionId/edit',
+      name: 'question-edit',
+      component: () => import('@/modules/content/presentation/QuestionFormPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
     { path: '/:pathMatch(.*)*', redirect: '/subjects' },
   ],
 })
