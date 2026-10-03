@@ -10,6 +10,7 @@ import AppLayout from '@/shared/ui/AppLayout.vue'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
+import { useQuestionStore } from '@/modules/content/application/questionStore'
 import { i18n } from '@/shared/i18n'
 import { configureOffline, readThrough } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
@@ -71,6 +72,7 @@ describe('AppLayout', () => {
     useSessionStore().$patch({ token: 'tok', user: user(false) })
     useSubjectStore().$patch({ subjects: [{ id: 's-1', name: 'Química', active: true, canAuthor: false }] })
     useTopicStore().$patch({ subjectId: 's-1', topics: [{ id: 't-1', name: 'Átomos', description: 'x', position: 1, active: true, questionCount: null }] })
+    useQuestionStore().$patch({ topicId: 't-1' })
     await render()
 
     useSessionStore().clear()
@@ -79,6 +81,7 @@ describe('AppLayout', () => {
     expect(useSubjectStore().subjects).toEqual([])
     expect(useTopicStore().topics).toEqual([])
     expect(useTopicStore().subjectId).toBeNull()
+    expect(useQuestionStore().topicId).toBeNull()
   })
 
   it('wipes the previous user\'s saved lists from this phone when the session ends', async () => {

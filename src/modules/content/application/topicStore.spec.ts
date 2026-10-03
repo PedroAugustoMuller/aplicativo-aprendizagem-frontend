@@ -8,7 +8,7 @@ import { createMemoryStorage } from '@/shared/offline/storage'
 import type { Topic } from '@/modules/content/domain/Topic'
 
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({
-  topicRepository: { listBySubject: vi.fn() },
+  topicRepository: { listBySubject: vi.fn(), create: vi.fn(), update: vi.fn(), deactivate: vi.fn(), reactivate: vi.fn(), reorder: vi.fn() },
 }))
 
 const ATOMS = { id: 't-1', name: 'Átomos', description: 'x', position: 1, active: true, questionCount: null }
@@ -140,5 +140,64 @@ describe('topicStore', () => {
 
     expect(store.topics).toEqual([])
     expect(store.error?.code).toBe('api.network_unavailable')
+  })
+
+  it('creates a topic in the current subject and reloads', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS])
+    vi.mocked(topicRepository.create).mockResolvedValue(ATOMS)
+    const store = useTopicStore()
+    await store.load('s-1')
+
+    await store.create('t-1', { name: 'Átomos', description: '' })
+
+    expect(topicRepository.create).toHaveBeenCalledWith('s-1', 't-1', { name: 'Átomos', description: '' })
+    expect(topicRepository.listBySubject).toHaveBeenCalledTimes(2)
+  })
+
+  it('moves a topic up by sending the whole order', async () => {
+    const second = { ...CELLS, position: 2 }
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS, second])
+    vi.mocked(topicRepository.reorder).mockResolvedValue([second, ATOMS])
+    const store = useTopicStore()
+    await store.load('s-1')
+
+    await store.move('t-9', -1)
+
+    expect(topicRepository.reorder).toHaveBeenCalledWith('s-1', ['t-9', 't-1'])
+  })
+
+  it('does nothing when moving past either end', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS])
+    const store = useTopicStore()
+    await store.load('s-1')
+
+    await store.move('t-1', -1)
+    await store.move('t-1', 1)
+
+    expect(topicRepository.reorder).not.toHaveBeenCalled()
+  })
+
+  it('reloads and still reports a stale order', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS, { ...CELLS, position: 2 }])
+    vi.mocked(topicRepository.reorder).mockRejectedValue(new ApiError('content.topic.order_stale', {}, 409))
+    const store = useTopicStore()
+    await store.load('s-1')
+
+    await expect(store.move('t-9', -1)).rejects.toMatchObject({ code: 'content.topic.order_stale' })
+    expect(topicRepository.listBySubject).toHaveBeenCalledTimes(2)
+  })
+
+  it('deactivates or reactivates through the matching call', async () => {
+    vi.mocked(topicRepository.listBySubject).mockResolvedValue([ATOMS])
+    vi.mocked(topicRepository.deactivate).mockResolvedValue(ATOMS)
+    vi.mocked(topicRepository.reactivate).mockResolvedValue(ATOMS)
+    const store = useTopicStore()
+    await store.load('s-1')
+
+    await store.setActive('t-1', false)
+    await store.setActive('t-1', true)
+
+    expect(topicRepository.deactivate).toHaveBeenCalledWith('t-1')
+    expect(topicRepository.reactivate).toHaveBeenCalledWith('t-1')
   })
 })

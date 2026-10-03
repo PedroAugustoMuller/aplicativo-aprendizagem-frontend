@@ -194,4 +194,13 @@ describe('subjectStore', () => {
       code: 'content.subject.name_already_taken',
     })
   })
+
+  it('says whether the viewer authors a subject', async () => {
+    vi.mocked(subjectRepository.list).mockResolvedValue([{ ...QUIMICA, canAuthor: true }])
+    const store = useSubjectStore()
+    await store.load()
+
+    expect(store.canAuthor('s-1')).toBe(true)
+    expect(store.canAuthor('s-404')).toBe(false)
+  })
 })
