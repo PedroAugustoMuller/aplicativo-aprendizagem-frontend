@@ -126,13 +126,15 @@ function removeOption(key: string): void {
 const busy = ref(false)
 const error = ref<ApiError | null>(null)
 const errorMessage = computed(() => (error.value === null ? null : apiErrorMessage(error.value, t, te)))
+const reloadFailed = ref(false)
 const editedElsewhere = computed(() => error.value?.code === 'content.question.edited_elsewhere')
+const mustReload = computed(() => editedElsewhere.value || reloadFailed.value)
 let allowLeave = false
 
 async function save(): Promise<void> {
   showProblems.value = true
 
-  if (busy.value || !online.value || editedElsewhere.value || problems.value.length > 0) {
+  if (busy.value || !online.value || mustReload.value || problems.value.length > 0) {
     return
   }
 
@@ -160,10 +162,27 @@ async function save(): Promise<void> {
 
 async function reloadQuestion(): Promise<void> {
   await store.load(topicId.value)
+
+  if (store.error !== null) {
+    error.value = store.error
+    reloadFailed.value = true
+
+    return
+  }
+
+  if (store.savedAt !== null) {
+    // A copy saved on the device may carry the old version: never adopt it.
+    error.value = new ApiError('api.network_unavailable')
+    reloadFailed.value = true
+
+    return
+  }
+
   const question = store.find(questionId.value)
 
   if (question !== null) {
     error.value = null
+    reloadFailed.value = false
     adopt(question)
   }
 }
@@ -393,7 +412,7 @@ function confirmLeave(): void {
       >
         <div>{{ errorMessage }}</div>
         <v-btn
-          v-if="editedElsewhere"
+          v-if="mustReload"
           class="mt-2"
           size="small"
           variant="outlined"
@@ -418,10 +437,10 @@ function confirmLeave(): void {
           variant="flat"
           data-testid="question-form-save"
           :loading="busy"
-          :disabled="!online || busy || editedElsewhere"
+          :disabled="!online || busy || mustReload"
           @click.prevent="save"
         >
-          {{ error !== null && !editedElsewhere ? t('questions.form.retry') : t('common.save') }}
+          {{ error !== null && !mustReload ? t('questions.form.retry') : t('common.save') }}
         </v-btn>
       </div>
     </v-form>

@@ -185,6 +185,23 @@ describe('QuestionFormPage', () => {
     expect(update).toHaveBeenLastCalledWith('q-1', 4, expect.objectContaining({ statement: 'Versão dela' }))
   })
 
+  it('keeps the form and offers another try when reloading fails', async () => {
+    update.mockRejectedValue(new ApiError('content.question.edited_elsewhere', {}, 409))
+    const { wrapper } = await render(`${BANK}/q-1/edit`)
+    await fill(wrapper, 'question-form-statement', 'Minha versão')
+    await save(wrapper)
+    update.mockClear()
+
+    listByTopic.mockRejectedValue(new ApiError('api.network_unavailable'))
+    await wrapper.find('[data-testid="question-form-reload"]').trigger('click')
+    await flushPromises()
+
+    expect(statementValue(wrapper)).toBe('Minha versão')
+    expect(wrapper.find('[data-testid="question-form-error"]').text()).toContain('Sem conexão')
+    expect(wrapper.find('[data-testid="question-form-reload"]').exists()).toBe(true)
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it('says so when the question does not exist', async () => {
     const { wrapper } = await render(`${BANK}/q-404/edit`)
 
