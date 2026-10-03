@@ -72,6 +72,12 @@ export const router = createRouter({
       component: () => import('@/modules/content/presentation/QuestionFormPage.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
+    {
+      path: '/quiz/:attemptId',
+      name: 'quiz',
+      component: () => import('@/modules/quiz/presentation/QuizPage.vue'),
+      meta: { requiresAuth: true, roles: ['student'] },
+    },
     { path: '/:pathMatch(.*)*', redirect: '/subjects' },
   ],
 })
