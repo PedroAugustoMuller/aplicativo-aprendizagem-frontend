@@ -32,12 +32,23 @@ test.describe('a teacher authors content', () => {
     await expect(page.getByTestId('topic-form')).toHaveCount(0)
 
     const titles = page.locator('[data-testid^="topic-"] .v-card-title')
-    await expect(titles.last()).toHaveText(topicName)
-    const count = await titles.count()
+    await expect(titles.filter({ hasText: topicName })).toHaveCount(1)
     const topicId = await topicIdNamed(page, topicName)
+    await expect(page.getByTestId(`topic-${topicId}`)).toBeVisible()
+
+    // The parallel desktop/mobile projects share this list: assert order relative to the neighbour.
+    const before = (await titles.allTextContents()).map((t) => t.trim())
+    const neighbour = before[before.indexOf(topicName) - 1] ?? ''
+    expect(neighbour).not.toBe('')
 
     await page.getByTestId(`topic-up-${topicId}`).click()
-    await expect(titles.nth(count - 2)).toHaveText(topicName)
+    await expect
+      .poll(async () => {
+        const after = (await titles.allTextContents()).map((t) => t.trim())
+
+        return after.indexOf(topicName) < after.indexOf(neighbour)
+      })
+      .toBe(true)
 
     await page.getByTestId(`topic-${topicId}`).click()
     await expect(page).toHaveURL(new RegExp(`/topics/${topicId}/questions$`))
@@ -111,6 +122,7 @@ test.describe('a student', () => {
   test('sees no authoring controls and cannot open a question bank', async ({ page }) => {
     await page.goto(TOPICS)
     await expect(page.getByTestId('topics-list')).toBeVisible()
+    await expect(page.locator('.v-card-title', { hasText: 'Tabela Periódica' })).toBeVisible()
     await expect(page.getByTestId('topics-create')).toHaveCount(0)
     await expect(page.locator('[data-testid^="topic-edit-"]')).toHaveCount(0)
 
