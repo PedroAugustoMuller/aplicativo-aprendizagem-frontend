@@ -48,6 +48,12 @@ describe('HttpSubjectRepository', () => {
     expect(contentRequests.createSubject).toHaveBeenCalledWith({ id: 's-9', name: 'Física' })
   })
 
+  it('reads a write response without can_author as not authorable', async () => {
+    vi.mocked(contentRequests.renameSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: true })
+
+    await expect(subjectRepository.rename('s-1', 'Química I')).resolves.toMatchObject({ canAuthor: false })
+  })
+
   it('renames and deactivates by id', async () => {
     vi.mocked(contentRequests.renameSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: true, can_author: false })
     vi.mocked(contentRequests.deactivateSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: false, can_author: false })

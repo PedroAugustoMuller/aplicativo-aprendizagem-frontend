@@ -24,8 +24,14 @@ export const topicRepository: TopicRepository = {
     return toDomain(await contentRequests.createTopic(subjectId, { id, name: input.name, description: input.description }))
   },
 
-  async update(id, input) {
-    return toDomain(await contentRequests.updateTopic(id, { name: input.name, description: input.description }))
+  async update(id, patch) {
+    // Only the keys that were sent: an undefined key would still be a field to the server.
+    const body = {
+      ...(patch.name === undefined ? {} : { name: patch.name }),
+      ...(patch.description === undefined ? {} : { description: patch.description }),
+    }
+
+    return toDomain(await contentRequests.updateTopic(id, body))
   },
 
   async deactivate(id) {

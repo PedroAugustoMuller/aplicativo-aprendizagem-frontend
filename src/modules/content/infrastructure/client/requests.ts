@@ -23,7 +23,7 @@ export const contentRequests = {
 
   createTopic: (subjectId: string, data: { id: string; name: string; description: string }) =>
     api.post<TopicResponse>({ url: contentRoutes.subjectTopics, urlParams: { subjectId }, data }),
-  updateTopic: (topicId: string, data: { name: string; description: string }) =>
+  updateTopic: (topicId: string, data: { name?: string; description?: string }) =>
     api.patch<TopicResponse>({ url: contentRoutes.topic, urlParams: { topicId }, data }),
   deactivateTopic: (topicId: string) =>
     api.post<TopicResponse>({ url: contentRoutes.topicDeactivate, urlParams: { topicId } }),

@@ -4,7 +4,7 @@ import { topicRepository } from '@/modules/content/infrastructure/HttpTopicRepos
 import { readThrough } from '@/shared/offline/readThrough'
 import { ApiError } from '@/shared/api/error'
 import type { Topic } from '@/modules/content/domain/Topic'
-import type { TopicInput } from '@/modules/content/domain/TopicRepository'
+import type { TopicInput, TopicPatch } from '@/modules/content/domain/TopicRepository'
 
 export const useTopicStore = defineStore('topics', () => {
   const subjectId = ref<string | null>(null)
@@ -64,9 +64,9 @@ export const useTopicStore = defineStore('topics', () => {
     await load(current)
   }
 
-  async function update(id: string, input: TopicInput): Promise<void> {
+  async function update(id: string, patch: TopicPatch): Promise<void> {
     const current = currentSubject()
-    await topicRepository.update(id, input)
+    await topicRepository.update(id, patch)
     await load(current)
   }
 

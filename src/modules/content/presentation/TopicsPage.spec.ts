@@ -9,6 +9,8 @@ import * as directives from 'vuetify/directives'
 import TopicsPage from '@/modules/content/presentation/TopicsPage.vue'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
+import { configureOffline } from '@/shared/offline/readThrough'
+import { createMemoryStorage, type OfflineStorage } from '@/shared/offline/storage'
 
 const { listSubjects, listBySubject, create, update, deactivate, reactivate, reorder } = vi.hoisted(() => ({ listSubjects: vi.fn(), listBySubject: vi.fn(), create: vi.fn(), update: vi.fn(), deactivate: vi.fn(), reactivate: vi.fn(), reorder: vi.fn() }))
 
@@ -47,7 +49,11 @@ async function render(path: string) {
 }
 
 describe('TopicsPage', () => {
+  let storage: OfflineStorage
+
   beforeEach(() => {
+    storage = createMemoryStorage()
+    configureOffline({ userId: () => 'u-1', storage })
     setActivePinia(createPinia())
     vi.resetAllMocks()
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
@@ -231,6 +237,48 @@ describe('TopicsPage', () => {
       expect(wrapper.find('[data-testid="topic-edit-t-1"]').attributes('disabled')).toBeDefined()
       expect(wrapper.find('[data-testid="topic-toggle-t-1"]').attributes('disabled')).toBeDefined()
     })
+  })
+
+  it('shows a list saved before topics had an active flag or a count without a false mark', async () => {
+    await storage.set('u-1:content:topics:s-1', {
+      value: [{ id: 't-1', name: 'Átomos', description: 'x', position: 0 }],
+      savedAt: new Date(2026, 8, 30, 12, 40).toISOString(),
+    })
+    listBySubject.mockRejectedValue(new ApiError('api.network_unavailable'))
+
+    const { wrapper } = await render('/subjects/s-1/topics')
+
+    expect(wrapper.find('[data-testid="topic-t-1"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="topic-inactive"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="topic-question-count"]').exists()).toBe(false)
+  })
+
+  it('sends only the description when only the description was edited', async () => {
+    listSubjects.mockResolvedValue([{ id: 's-1', name: 'Química', active: true, canAuthor: true }])
+    listBySubject.mockResolvedValue([{ id: 't-1', name: 'Átomos', description: 'x', position: 0, active: true, questionCount: 3 }])
+    update.mockResolvedValue({ id: 't-1' })
+
+    const { wrapper } = await render('/subjects/s-1/topics')
+    await wrapper.find('[data-testid="topic-edit-t-1"]').trigger('click')
+    await wrapper.find('[data-testid="topic-form-description"] textarea').setValue(' novo ')
+    await wrapper.find('[data-testid="topic-form-save"]').trigger('click')
+    await flushPromises()
+
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(update).toHaveBeenCalledWith('t-1', { description: 'novo' })
+  })
+
+  it('closes without a request when nothing was edited', async () => {
+    listSubjects.mockResolvedValue([{ id: 's-1', name: 'Química', active: true, canAuthor: true }])
+    listBySubject.mockResolvedValue([{ id: 't-1', name: 'Átomos', description: 'x', position: 0, active: true, questionCount: 3 }])
+
+    const { wrapper } = await render('/subjects/s-1/topics')
+    await wrapper.find('[data-testid="topic-edit-t-1"]').trigger('click')
+    await wrapper.find('[data-testid="topic-form-save"]').trigger('click')
+    await flushPromises()
+
+    expect(update).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="topic-form"]').exists()).toBe(false)
   })
 
   it('shows a non-author no authoring controls and no counts', async () => {

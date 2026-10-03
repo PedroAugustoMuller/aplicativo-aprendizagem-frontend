@@ -7,7 +7,7 @@ const toDomain = (response: SubjectResponse): Subject => ({
   id: response.id,
   name: response.name,
   active: response.active,
-  canAuthor: response.can_author,
+  canAuthor: response.can_author ?? false,
 })
 
 export const subjectRepository: SubjectRepository = {

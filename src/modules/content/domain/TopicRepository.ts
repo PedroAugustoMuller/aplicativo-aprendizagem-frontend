@@ -5,6 +5,12 @@ export interface TopicInput {
   readonly description: string
 }
 
+/** An edit names only what changed: the server writes only the sent fields. */
+export interface TopicPatch {
+  readonly name?: string
+  readonly description?: string
+}
+
 /**
  * The port the offline adapter will implement. Keeping the page behind this
  * interface is why RNF03 will not require rewriting the page.
@@ -12,7 +18,7 @@ export interface TopicInput {
 export interface TopicRepository {
   listBySubject(subjectId: string): Promise<Topic[]>
   create(subjectId: string, id: string, input: TopicInput): Promise<Topic>
-  update(id: string, input: TopicInput): Promise<Topic>
+  update(id: string, patch: TopicPatch): Promise<Topic>
   deactivate(id: string): Promise<Topic>
   reactivate(id: string): Promise<Topic>
   /** The whole order; the server refuses it (content.topic.order_stale) if the topics changed. */

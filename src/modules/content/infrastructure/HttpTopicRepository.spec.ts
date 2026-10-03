@@ -65,6 +65,14 @@ describe('HttpTopicRepository', () => {
     expect(contentRequests.updateTopic).toHaveBeenCalledWith('t-1', { name: 'Átomos', description: 'x' })
   })
 
+  it('sends an edit without the fields that were not sent', async () => {
+    vi.mocked(contentRequests.updateTopic).mockResolvedValue(ATOMS)
+
+    await topicRepository.update('t-1', { description: 'x' })
+
+    expect(contentRequests.updateTopic).toHaveBeenCalledWith('t-1', { description: 'x' })
+  })
+
   it('deactivates, reactivates and reorders', async () => {
     vi.mocked(contentRequests.deactivateTopic).mockResolvedValue({ ...ATOMS, active: false })
     vi.mocked(contentRequests.reactivateTopic).mockResolvedValue(ATOMS)

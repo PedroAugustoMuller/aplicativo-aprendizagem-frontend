@@ -90,7 +90,7 @@ export const useSubjectStore = defineStore('subjects', () => {
   }
 
   function canAuthor(id: string): boolean {
-    return subjects.value.find((subject) => subject.id === id)?.canAuthor ?? false
+    return subjects.value.find((subject) => subject.id === id)?.canAuthor === true
   }
 
   return { subjects, savedAt, loading, error, load, ensureLoaded, nameOf, canAuthor, reset, create, rename, deactivate }

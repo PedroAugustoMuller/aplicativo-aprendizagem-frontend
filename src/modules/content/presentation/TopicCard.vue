@@ -31,7 +31,7 @@ const { t } = useI18n()
           {{ topic.name }}
         </v-card-title>
         <template
-          v-if="!topic.active"
+          v-if="topic.active === false"
           #append
         >
           <v-chip
@@ -45,7 +45,7 @@ const { t } = useI18n()
       <v-card-text>
         {{ topic.description }}
         <div
-          v-if="topic.questionCount !== null"
+          v-if="typeof topic.questionCount === 'number'"
           class="mt-2 text-medium-emphasis"
           data-testid="topic-question-count"
         >

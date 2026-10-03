@@ -3,7 +3,8 @@ export interface SubjectResponse {
   id: string
   name: string
   active: boolean
-  can_author: boolean
+  /** Sent by GET /subjects only; write responses leave it out. */
+  can_author?: boolean
 }
 
 export type SubjectListResponse = SubjectResponse[]

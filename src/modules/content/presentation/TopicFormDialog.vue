@@ -6,6 +6,7 @@ import { useTopicStore } from '@/modules/content/application/topicStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Topic } from '@/modules/content/domain/Topic'
+import type { TopicPatch } from '@/modules/content/domain/TopicRepository'
 import OfflineHint from '@/shared/ui/OfflineHint.vue'
 
 const props = defineProps<{ modelValue: boolean; topic: Topic | null }>()
@@ -55,7 +56,16 @@ async function save(): Promise<void> {
     if (props.topic === null) {
       await store.create(requestId, input)
     } else {
-      await store.update(props.topic.id, input)
+      // Only what this edit changed: sending the untouched fields back would
+      // undo someone else's concurrent change to them.
+      const patch: TopicPatch = {
+        ...(input.name === props.topic.name ? {} : { name: input.name }),
+        ...(input.description === props.topic.description ? {} : { description: input.description }),
+      }
+
+      if (Object.keys(patch).length > 0) {
+        await store.update(props.topic.id, patch)
+      }
     }
 
     emit('update:modelValue', false)
