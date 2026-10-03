@@ -51,7 +51,7 @@ export const router = createRouter({
     {
       path: '/subjects/:subjectId/topics',
       name: 'subject-topics',
-      component: () => import('@/modules/content/presentation/TopicsPage.vue'),
+      component: () => import('@/shared/ui/TopicsWithQuiz.vue'),
       meta: { requiresAuth: true },
     },
     {

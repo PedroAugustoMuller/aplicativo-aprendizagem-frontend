@@ -1,5 +1,5 @@
 import { createStore, del, get, keys, set } from 'idb-keyval'
-import type { OfflineStorage } from '@/shared/offline/storage'
+import { createMemoryStorage, type OfflineStorage } from '@/shared/offline/storage'
 import type { PendingAnswer } from '@/modules/quiz/domain/Attempt'
 import type { SavedQuiz } from '@/modules/quiz/domain/playState'
 
@@ -73,4 +73,8 @@ const idbQuizStorage: OfflineStorage = {
   keys: async () => (await keys(store())).filter((key): key is string => typeof key === 'string'),
 }
 
-export const quizVault: QuizVault = createQuizVault(idbQuizStorage)
+// Without IndexedDB (some private modes, unit tests) the quiz still works for this
+// page's life; it just cannot survive a reload.
+const hasIndexedDb = typeof globalThis.indexedDB !== 'undefined'
+
+export const quizVault: QuizVault = createQuizVault(hasIndexedDb ? idbQuizStorage : createMemoryStorage())

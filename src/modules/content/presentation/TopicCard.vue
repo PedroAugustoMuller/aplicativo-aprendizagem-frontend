@@ -13,6 +13,7 @@ defineProps<{
   locked: boolean
 }>()
 const emit = defineEmits<{ edit: []; toggle: []; move: [direction: -1 | 1] }>()
+defineSlots<{ actions?: () => unknown }>()
 
 const { t } = useI18n()
 </script>
@@ -103,5 +104,7 @@ const { t } = useI18n()
         {{ topic.active ? t('topics.deactivate') : t('topics.reactivate') }}
       </v-btn>
     </div>
+    <!-- Filled by the composition root (e.g. quiz actions for students). -->
+    <slot name="actions" />
   </div>
 </template>

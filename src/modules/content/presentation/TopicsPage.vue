@@ -16,6 +16,10 @@ import OfflineHint from '@/shared/ui/OfflineHint.vue'
 import TopicCard from '@/modules/content/presentation/TopicCard.vue'
 import TopicFormDialog from '@/modules/content/presentation/TopicFormDialog.vue'
 
+// The composition root (src/shared/ui/TopicsWithQuiz.vue) adds per-topic actions
+// from other modules here; content never imports them.
+defineSlots<{ 'topic-actions'?: (props: { topic: Topic }) => unknown }>()
+
 const { t, te } = useI18n()
 const route = useRoute()
 const store = useTopicStore()
@@ -179,7 +183,14 @@ watch(
           @edit="openForm(topic)"
           @toggle="toggle(topic)"
           @move="(direction) => run(() => store.move(topic.id, direction))"
-        />
+        >
+          <template #actions>
+            <slot
+              name="topic-actions"
+              :topic="topic"
+            />
+          </template>
+        </TopicCard>
       </v-col>
     </v-row>
 

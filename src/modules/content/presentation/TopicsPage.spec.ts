@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { h } from 'vue'
+import { h, type VNode } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
@@ -7,6 +7,7 @@ import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import TopicsPage from '@/modules/content/presentation/TopicsPage.vue'
+import type { Topic } from '@/modules/content/domain/Topic'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
 import { configureOffline } from '@/shared/offline/readThrough'
@@ -290,5 +291,24 @@ describe('TopicsPage', () => {
     expect(wrapper.find('[data-testid="topic-edit-t-1"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="topic-question-count"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="topic-t-1"]').attributes('href')).toBeUndefined()
+  })
+
+  it('renders what the topic-actions slot adds to each card', async () => {
+    listBySubject.mockResolvedValue([{ id: 't-1', name: 'Átomos', description: 'x', position: 1, active: true, questionCount: null }])
+    const WithActions = {
+      render: () => h(TopicsPage, null, {
+        'topic-actions': ({ topic }: { topic: Topic }): VNode => h('span', { 'data-testid': `extra-${topic.id}` }, topic.name),
+      }),
+    }
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/subjects/:subjectId/topics', component: WithActions }, { path: '/:any(.*)*', component: Stub }],
+    })
+    await router.push('/subjects/s-1/topics')
+
+    const wrapper = mount(App, { global: { plugins: [vuetify, i18n, router] } })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="extra-t-1"]').text()).toBe('Átomos')
   })
 })
