@@ -54,6 +54,12 @@ export const router = createRouter({
       component: () => import('@/modules/content/presentation/TopicsPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/subjects/:subjectId/topics/:topicId/questions',
+      name: 'topic-questions',
+      component: () => import('@/modules/content/presentation/QuestionsPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
     { path: '/:pathMatch(.*)*', redirect: '/subjects' },
   ],
 })
