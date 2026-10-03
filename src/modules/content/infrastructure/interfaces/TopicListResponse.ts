@@ -4,6 +4,9 @@ export interface TopicResponse {
   name: string
   description: string
   position: number
+  active: boolean
+  /** Sent to the subject's authors only. */
+  active_question_count?: number
 }
 
 export type TopicListResponse = TopicResponse[]

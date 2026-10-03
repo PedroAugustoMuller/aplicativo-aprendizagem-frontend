@@ -17,16 +17,16 @@ describe('HttpSubjectRepository', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('maps the response into domain subjects', async () => {
-    vi.mocked(contentRequests.listSubjects).mockResolvedValue([{ id: 's-1', name: 'Química', active: true }])
+    vi.mocked(contentRequests.listSubjects).mockResolvedValue([{ id: 's-1', name: 'Química', active: true, can_author: false }])
 
-    await expect(subjectRepository.list()).resolves.toEqual([{ id: 's-1', name: 'Química', active: true }])
+    await expect(subjectRepository.list()).resolves.toEqual([{ id: 's-1', name: 'Química', active: true, canAuthor: false }])
   })
 
   it('sorts by name the way a Portuguese reader expects', async () => {
     vi.mocked(contentRequests.listSubjects).mockResolvedValue([
-      { id: 'q', name: 'Química', active: true },
-      { id: 'b', name: 'Biologia', active: true },
-      { id: 'a', name: 'Álgebra', active: false },
+      { id: 'q', name: 'Química', active: true, can_author: false },
+      { id: 'b', name: 'Biologia', active: true, can_author: false },
+      { id: 'a', name: 'Álgebra', active: false, can_author: false },
     ])
 
     const subjects = await subjectRepository.list()
@@ -41,20 +41,26 @@ describe('HttpSubjectRepository', () => {
   })
 
   it('creates a subject under the id the client chose', async () => {
-    vi.mocked(contentRequests.createSubject).mockResolvedValue({ id: 's-9', name: 'Física', active: true })
+    vi.mocked(contentRequests.createSubject).mockResolvedValue({ id: 's-9', name: 'Física', active: true, can_author: false })
 
     await expect(subjectRepository.create({ id: 's-9', name: 'Física' }))
-      .resolves.toEqual({ id: 's-9', name: 'Física', active: true })
+      .resolves.toEqual({ id: 's-9', name: 'Física', active: true, canAuthor: false })
     expect(contentRequests.createSubject).toHaveBeenCalledWith({ id: 's-9', name: 'Física' })
   })
 
   it('renames and deactivates by id', async () => {
-    vi.mocked(contentRequests.renameSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: true })
-    vi.mocked(contentRequests.deactivateSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: false })
+    vi.mocked(contentRequests.renameSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: true, can_author: false })
+    vi.mocked(contentRequests.deactivateSubject).mockResolvedValue({ id: 's-1', name: 'Química I', active: false, can_author: false })
 
     await subjectRepository.rename('s-1', 'Química I')
     await expect(subjectRepository.deactivate('s-1')).resolves.toMatchObject({ active: false })
     expect(contentRequests.renameSubject).toHaveBeenCalledWith('s-1', 'Química I')
     expect(contentRequests.deactivateSubject).toHaveBeenCalledWith('s-1')
+  })
+
+  it('tells which subjects the viewer authors', async () => {
+    vi.mocked(contentRequests.listSubjects).mockResolvedValue([{ id: 's-1', name: 'Química', active: true, can_author: true }])
+
+    await expect(subjectRepository.list()).resolves.toEqual([{ id: 's-1', name: 'Química', active: true, canAuthor: true }])
   })
 })

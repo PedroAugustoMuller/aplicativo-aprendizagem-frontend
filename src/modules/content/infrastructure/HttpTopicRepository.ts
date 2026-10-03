@@ -8,13 +8,35 @@ const toDomain = (response: TopicResponse): Topic => ({
   name: response.name,
   description: response.description,
   position: response.position,
+  active: response.active,
+  questionCount: response.active_question_count ?? null,
 })
 
-export const topicRepository: TopicRepository = {
-  async listBySubject(subjectId: string): Promise<Topic[]> {
-    const response = await contentRequests.listTopics(subjectId)
+// Ordering is a display guarantee we own; do not depend on the server's order.
+const byPosition = (topics: Topic[]): Topic[] => topics.sort((a, b) => a.position - b.position)
 
-    // Ordering is a display guarantee we own; do not depend on the server's order.
-    return response.map(toDomain).sort((a, b) => a.position - b.position)
+export const topicRepository: TopicRepository = {
+  async listBySubject(subjectId) {
+    return byPosition((await contentRequests.listTopics(subjectId)).map(toDomain))
+  },
+
+  async create(subjectId, id, input) {
+    return toDomain(await contentRequests.createTopic(subjectId, { id, name: input.name, description: input.description }))
+  },
+
+  async update(id, input) {
+    return toDomain(await contentRequests.updateTopic(id, { name: input.name, description: input.description }))
+  },
+
+  async deactivate(id) {
+    return toDomain(await contentRequests.deactivateTopic(id))
+  },
+
+  async reactivate(id) {
+    return toDomain(await contentRequests.reactivateTopic(id))
+  },
+
+  async reorder(subjectId, ids) {
+    return byPosition((await contentRequests.reorderTopics(subjectId, [...ids])).map(toDomain))
   },
 }

@@ -163,8 +163,19 @@ export default {
     content: {
       subject: {
         name_already_taken: 'Já existe uma matéria com esse nome.',
+        inactive: 'Esta matéria está desativada. Peça à escola para reativá-la antes de editar o conteúdo.',
       },
       subject_not_found: 'Matéria não encontrada.',
+      topic: {
+        name_already_taken: 'Já existe um conteúdo com esse nome nesta matéria.',
+        order_stale: 'A ordem dos conteúdos mudou em outro aparelho. Confira a lista e tente de novo.',
+      },
+      topic_not_found: 'Conteúdo não encontrado.',
+      question: {
+        invalid_options: 'Confira as alternativas: de 2 a 5, sem repetir, com exatamente uma correta.',
+        edited_elsewhere: 'Outra pessoa alterou esta questão enquanto você editava.',
+      },
+      question_not_found: 'Questão não encontrada.',
     },
     identity: {
       invalid_credentials: 'E-mail/usuário ou senha incorretos.',

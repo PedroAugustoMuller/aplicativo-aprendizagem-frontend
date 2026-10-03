@@ -10,7 +10,7 @@ vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
   subjectRepository: { list: vi.fn(), create: vi.fn(), rename: vi.fn(), deactivate: vi.fn() },
 }))
 
-const QUIMICA = { id: 's-1', name: 'Química', active: true }
+const QUIMICA = { id: 's-1', name: 'Química', active: true, canAuthor: false }
 
 describe('subjectStore', () => {
   beforeEach(() => {
@@ -137,7 +137,7 @@ describe('subjectStore', () => {
   it('a load from before reset cannot overwrite the load that followed it', async () => {
     let finishOld: (subjects: typeof QUIMICA[]) => void = () => undefined
     let finishNew: (subjects: typeof QUIMICA[]) => void = () => undefined
-    const BIOLOGIA = { id: 's-2', name: 'Biologia', active: true }
+    const BIOLOGIA = { id: 's-2', name: 'Biologia', active: true, canAuthor: false }
     vi.mocked(subjectRepository.list)
       .mockReturnValueOnce(new Promise((resolve) => {
         finishOld = resolve
@@ -178,7 +178,7 @@ describe('subjectStore', () => {
 
   it('reloads the list after a change', async () => {
     vi.mocked(subjectRepository.list).mockResolvedValue([QUIMICA])
-    vi.mocked(subjectRepository.create).mockResolvedValue({ id: 's-9', name: 'Física', active: true })
+    vi.mocked(subjectRepository.create).mockResolvedValue({ id: 's-9', name: 'Física', active: true, canAuthor: false })
 
     const store = useSubjectStore()
     await store.create({ id: 's-9', name: 'Física' })

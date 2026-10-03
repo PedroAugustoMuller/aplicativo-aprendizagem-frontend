@@ -3,6 +3,7 @@ export interface SubjectResponse {
   id: string
   name: string
   active: boolean
+  can_author: boolean
 }
 
 export type SubjectListResponse = SubjectResponse[]

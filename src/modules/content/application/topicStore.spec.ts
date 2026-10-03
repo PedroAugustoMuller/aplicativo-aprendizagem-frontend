@@ -11,8 +11,8 @@ vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({
   topicRepository: { listBySubject: vi.fn() },
 }))
 
-const ATOMS = { id: 't-1', name: 'Átomos', description: 'x', position: 1 }
-const CELLS = { id: 't-9', name: 'Células', description: 'y', position: 1 }
+const ATOMS = { id: 't-1', name: 'Átomos', description: 'x', position: 1, active: true, questionCount: null }
+const CELLS = { id: 't-9', name: 'Células', description: 'y', position: 1, active: true, questionCount: null }
 
 /** A promise the test resolves by hand, to reorder responses. */
 function deferred<T>() {

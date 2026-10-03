@@ -69,8 +69,8 @@ describe('AppLayout', () => {
 
   it('forgets the previous user\'s content when the session ends', async () => {
     useSessionStore().$patch({ token: 'tok', user: user(false) })
-    useSubjectStore().$patch({ subjects: [{ id: 's-1', name: 'Química', active: true }] })
-    useTopicStore().$patch({ subjectId: 's-1', topics: [{ id: 't-1', name: 'Átomos', description: 'x', position: 1 }] })
+    useSubjectStore().$patch({ subjects: [{ id: 's-1', name: 'Química', active: true, canAuthor: false }] })
+    useTopicStore().$patch({ subjectId: 's-1', topics: [{ id: 't-1', name: 'Átomos', description: 'x', position: 1, active: true, questionCount: null }] })
     await render()
 
     useSessionStore().clear()

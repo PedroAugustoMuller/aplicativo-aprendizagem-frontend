@@ -163,8 +163,19 @@ export default {
     content: {
       subject: {
         name_already_taken: 'A subject with this name already exists.',
+        inactive: 'This subject is deactivated. Ask the school to reactivate it before editing its content.',
       },
       subject_not_found: 'Subject not found.',
+      topic: {
+        name_already_taken: 'This subject already has a topic with this name.',
+        order_stale: 'The topic order changed on another device. Check the list and try again.',
+      },
+      topic_not_found: 'Topic not found.',
+      question: {
+        invalid_options: 'Check the options: 2 to 5, no repeats, exactly one correct.',
+        edited_elsewhere: 'Someone else changed this question while you were editing.',
+      },
+      question_not_found: 'Question not found.',
     },
     identity: {
       invalid_credentials: 'Incorrect email/username or password.',
