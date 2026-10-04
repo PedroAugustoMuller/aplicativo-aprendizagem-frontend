@@ -9,6 +9,7 @@ import { TIER_THRESHOLDS, type AttemptSummary, type ProgressSource } from '@/mod
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
 import TierBadge from '@/modules/quiz/presentation/TierBadge.vue'
+import LevelUpDialog from '@/modules/quiz/presentation/LevelUpDialog.vue'
 
 const props = defineProps<{
   topicId: string
@@ -207,5 +208,6 @@ watch(() => quiz.pendingCount, (now, before) => {
         </v-list-item>
       </v-list>
     </template>
+    <LevelUpDialog />
   </div>
 </template>

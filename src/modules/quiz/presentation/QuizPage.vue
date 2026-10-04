@@ -11,6 +11,7 @@ import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import QuizQuestionCard from '@/modules/quiz/presentation/QuizQuestionCard.vue'
 import QuizResults from '@/modules/quiz/presentation/QuizResults.vue'
+import LevelUpDialog from '@/modules/quiz/presentation/LevelUpDialog.vue'
 
 const { t, te } = useI18n()
 const route = useRoute()
@@ -161,5 +162,6 @@ watch(attemptId, load, { immediate: true })
         />
       </template>
     </template>
+    <LevelUpDialog />
   </div>
 </template>

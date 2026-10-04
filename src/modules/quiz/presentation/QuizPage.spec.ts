@@ -158,6 +158,7 @@ describe('QuizPage', () => {
 
     expect(progressApi.topicHistory).toHaveBeenCalledWith({ kind: 'own' }, 't-1')
     expect(wrapper.find('[data-testid="quiz-results-tier"]').text()).toBe('Você está no nível Bronze (60 pts)')
+    expect(wrapper.find('[data-testid="level-up"]').text()).toContain('Você subiu para Bronze!')
   })
 
   it('shows no tier while answers wait to be sent', async () => {

@@ -110,4 +110,11 @@ describe('TopicProgressPage', () => {
 
     expect(wrapper.find('[data-testid="progress-pending"]').exists()).toBe(false)
   })
+
+  it('celebrates a fresh level-up on the student page', async () => {
+    repo.topicHistory.mockResolvedValue({ ...HISTORY, attempts: [HISTORY.attempts[2]!] })
+    const wrapper = await render()
+
+    expect(wrapper.get('[data-testid="level-up"]').text()).toContain('Você subiu para Prata!')
+  })
 })
