@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useOnline } from '@vueuse/core'
-import { mdiAccountCheck, mdiAccountOff, mdiAccountPlus, mdiArrowLeft, mdiLockReset, mdiPrinter, mdiAccountRemove, mdiAccountSearch } from '@mdi/js'
+import { mdiChartBar, mdiAccountCheck, mdiAccountOff, mdiAccountPlus, mdiArrowLeft, mdiLockReset, mdiPrinter, mdiAccountRemove, mdiAccountSearch } from '@mdi/js'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useRosterStore } from '@/modules/identity/application/rosterStore'
 import AddStudentsDialog from '@/modules/identity/presentation/AddStudentsDialog.vue'
@@ -148,6 +148,15 @@ const openSlips = (): Promise<void> => router.push(`/classrooms/${classroomId.va
         data-testid="roster-print"
       >
         {{ t('roster.print') }}
+      </v-btn>
+      <!-- A link by path: the progress grid belongs to the quiz module, which identity never imports. -->
+      <v-btn
+        variant="tonal"
+        :prepend-icon="mdiChartBar"
+        :to="`/classrooms/${classroomId}/progress`"
+        data-testid="classroom-progress"
+      >
+        {{ t('progress.classroomButton') }}
       </v-btn>
     </div>
 

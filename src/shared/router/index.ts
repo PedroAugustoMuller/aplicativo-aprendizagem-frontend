@@ -43,6 +43,12 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
+      path: '/classrooms/:classroomId/progress',
+      name: 'classroom-progress',
+      component: () => import('@/shared/ui/ClassroomProgressRoute.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
       path: '/classrooms/:classroomId/credentials',
       name: 'classroom-credentials',
       component: () => import('@/modules/identity/presentation/CredentialsPage.vue'),

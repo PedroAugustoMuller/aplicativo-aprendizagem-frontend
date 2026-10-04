@@ -68,6 +68,8 @@ describe('ClassroomPage', () => {
     expect(wrapper.find('[data-testid="classroom-title"]').text()).toBe('Química 1')
     expect(wrapper.find('[data-testid="roster-student-s-1"]').text()).toContain('ana.lima')
     expect(wrapper.find('[data-testid="roster-print"]').attributes('href')).toBe('/classrooms/c-1/credentials')
+    expect(wrapper.find('[data-testid="classroom-progress"]').attributes('href')).toBe('/classrooms/c-1/progress')
+    expect(wrapper.find('[data-testid="classroom-progress"]').text()).toBe('Desempenho')
   })
 
   it('previews a pasted list and blocks what the backend would refuse', async () => {
