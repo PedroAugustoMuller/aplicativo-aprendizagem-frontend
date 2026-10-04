@@ -50,6 +50,7 @@ test.describe('a student plays quizzes', () => {
 
     await expect(page.getByTestId('quiz-score')).toHaveText(/^Você acertou \d+ de \d+$/)
     await expect(page.getByTestId('quiz-results-pending')).toHaveCount(0)
+    await expect(page.getByTestId('quiz-results-tier')).toHaveText(/^Você está no nível \S+ \(\d+ pts\)$/)
   })
 
   test('picks up an unfinished quiz where it stopped', async ({ page }, testInfo) => {
