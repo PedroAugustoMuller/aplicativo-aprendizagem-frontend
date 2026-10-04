@@ -165,4 +165,57 @@ describe('progressStore', () => {
     expect(store.reviewError?.code).toBe('quiz.attempt_not_found')
     expect(store.classroomError?.code).toBe('auth.forbidden')
   })
+
+  it('forgets another subject tiers as soon as a new subject starts loading, and says which subject they are for', async () => {
+    const store = useProgressStore()
+    repo.subjectProgress.mockResolvedValueOnce([{ topicId: 't-1', points: 60, tier: 'bronze', nextTier: null }])
+    await store.loadSubject('s-1')
+    expect(store.subjectTiersFor).toBe('s-1')
+
+    let release: (v: unknown[]) => void = () => undefined
+    repo.subjectProgress.mockReturnValueOnce(new Promise((resolve) => { release = resolve }))
+    const pending = store.loadSubject('s-2')
+    expect(store.subjectTiersFor).toBeNull()
+    expect(store.subjectTiers).toEqual({})
+    release([])
+    await pending
+    expect(store.subjectTiersFor).toBe('s-2')
+
+    repo.subjectProgress.mockRejectedValueOnce(new ApiError('system.unexpected_error'))
+    await store.loadSubject('s-2')
+    expect(store.subjectTiersFor).toBeNull()
+  })
+
+  it('never shows another topic, student, attempt or classroom while the new one loads', async () => {
+    const store = useProgressStore()
+    repo.topicHistory.mockResolvedValueOnce(LEVELED)
+    repo.wrongQuestions.mockResolvedValue([{ questionId: 'q1' }])
+    repo.attempt.mockResolvedValueOnce({ id: 'a-1' })
+    repo.classroomProgress.mockResolvedValueOnce([{ id: 'u-1', name: 'Carla', username: 'c', topics: [] }])
+    await store.loadTopic(OWN, 't-1')
+    await store.loadAttempt(OWN, 'a-1')
+    await store.loadClassroom('c-1')
+
+    const never = new Promise<never>(() => undefined)
+    repo.topicHistory.mockReturnValue(never)
+    repo.attempt.mockReturnValue(never)
+    repo.classroomProgress.mockReturnValue(never)
+    void store.loadTopic(STAFF, 't-1')
+    void store.loadAttempt(OWN, 'a-2')
+    void store.loadClassroom('c-2')
+
+    expect([store.history, store.wrong, store.reviewed, store.classroom]).toEqual([null, [], null, []])
+  })
+
+  it('keeps the data on screen while the same topic reloads', async () => {
+    const store = useProgressStore()
+    repo.topicHistory.mockResolvedValueOnce(LEVELED)
+    repo.wrongQuestions.mockResolvedValue([])
+    await store.loadTopic(OWN, 't-1')
+
+    repo.topicHistory.mockReturnValue(new Promise<never>(() => undefined))
+    void store.loadTopic(OWN, 't-1')
+
+    expect(store.history?.points).toBe(60)
+  })
 })

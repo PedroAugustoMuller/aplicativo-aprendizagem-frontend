@@ -8,6 +8,8 @@ import { useClassroomStore } from '@/modules/identity/application/classroomStore
 import { useProgressStore } from '@/modules/quiz/application/progressStore'
 import { sourceFromParams } from '@/modules/quiz/application/progressRoutes'
 import TopicProgressPage from '@/modules/quiz/presentation/TopicProgressPage.vue'
+import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
+import { ApiError } from '@/shared/api/error'
 
 // Composition root: quiz shows the progress, content names the topic, identity knows the
 // classroom's subject. None of them imports another.
@@ -32,6 +34,19 @@ const studentName = computed(() => {
   const s = source.value
 
   return s.kind === 'student' ? (progress.classroom.find((student) => student.id === s.studentId)?.name ?? '') : undefined
+})
+// Staff pages need the classroom to know its subject: say why when it cannot be found.
+const classroomError = computed((): ApiError | null => {
+  if (classroomId.value === '' || subjectId.value !== '' || classrooms.loading) {
+    return null
+  }
+
+  if (classrooms.error !== null) {
+    return classrooms.error
+  }
+
+  // Loaded and not among the viewer's classrooms (a typed URL, a class they no longer teach).
+  return new ApiError('quiz.classroom_not_found')
 })
 const backTo = computed(() => (classroomId.value === '' ? `/subjects/${subjectId.value}/topics` : `/classrooms/${classroomId.value}/progress`))
 
@@ -67,8 +82,14 @@ watch(subjectId, (id) => {
     >
       {{ t('progress.back') }}
     </v-btn>
+    <ApiErrorAlert
+      v-if="classroomError"
+      :error="classroomError"
+      testid="progress-classroom"
+      @retry="classrooms.load()"
+    />
     <TopicProgressPage
-      v-if="subjectId !== ''"
+      v-else-if="subjectId !== ''"
       :topic-id="topicId"
       :subject-id="subjectId"
       :topic-name="topicName"

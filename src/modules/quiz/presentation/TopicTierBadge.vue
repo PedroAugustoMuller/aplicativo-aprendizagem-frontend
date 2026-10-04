@@ -7,13 +7,14 @@ import TierBadge from '@/modules/quiz/presentation/TierBadge.vue'
 const props = defineProps<{ topicId: string; subjectId: string }>()
 const store = useProgressStore()
 const role = useViewerRole()
-// A topic without answers has no entry: it is iron at 0.
+// Iron at 0 only means "loaded, no answers": until this subject's tiers load, show nothing.
+const loaded = computed(() => store.subjectTiersFor === props.subjectId)
 const entry = computed(() => store.subjectTiers[props.topicId] ?? null)
 </script>
 
 <template>
   <router-link
-    v-if="role === 'student'"
+    v-if="role === 'student' && loaded"
     :to="`/subjects/${subjectId}/topics/${topicId}/progress`"
     class="d-inline-block mt-1 text-decoration-none"
     :data-testid="`topic-tier-${topicId}`"

@@ -11,6 +11,7 @@ import { configureViewer, configureViewerId } from '@/shared/auth/viewer'
 import { configureOffline } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
 import { i18n } from '@/shared/i18n'
+import { ApiError } from '@/shared/api/error'
 
 // shared/ui reaches modules only through application/ and presentation/: mock by path.
 const topicsApi = vi.hoisted(() => ({ listBySubject: vi.fn() }))
@@ -71,5 +72,25 @@ describe('TopicProgressRoute', () => {
     expect(wrapper.get('[data-testid="progress-title"]').text()).toBe('Átomos')
     expect(progressApi.topicHistory).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', studentId: 'u-1' }, 't-1')
     expect(wrapper.get('[data-testid="progress-back"]').attributes('href')).toBe('/classrooms/c-1/progress')
+  })
+
+  it('explains instead of going blank when the classroom is not one of the teacher classrooms', async () => {
+    configureViewer(() => 'teacher')
+    classroomsApi.list.mockResolvedValue([])
+    classroomsApi.subjectOptions.mockResolvedValue([])
+    progressApi.classroomProgress.mockResolvedValue([])
+    const wrapper = await renderAt('/classrooms/c-9/students/u-1/topics/t-1/progress')
+
+    expect(wrapper.get('[data-testid="progress-classroom-error"]').text()).toContain('Não encontramos esta turma.')
+  })
+
+  it('shows the classroom load failure instead of a blank page', async () => {
+    configureViewer(() => 'teacher')
+    classroomsApi.list.mockRejectedValue(new ApiError('api.network_unavailable'))
+    classroomsApi.subjectOptions.mockRejectedValue(new ApiError('api.network_unavailable'))
+    progressApi.classroomProgress.mockResolvedValue([])
+    const wrapper = await renderAt('/classrooms/c-1/students/u-1/topics/t-1/progress')
+
+    expect(wrapper.find('[data-testid="progress-classroom-error"]').exists()).toBe(true)
   })
 })

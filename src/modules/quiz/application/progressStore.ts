@@ -15,6 +15,8 @@ const scopeOf = (source: ProgressSource): string => (source.kind === 'own' ? 'ow
 
 export const useProgressStore = defineStore('progress', () => {
   const subjectTiers = ref<Record<string, TopicProgress>>({})
+  /** The subject the tiers belong to; null while loading another one or after a failure. */
+  const subjectTiersFor = ref<string | null>(null)
 
   const history = ref<TopicHistory | null>(null)
   const wrong = ref<WrongQuestion[]>([])
@@ -39,20 +41,32 @@ export const useProgressStore = defineStore('progress', () => {
   let latestTopic = 0
   let latestAttempt = 0
   let latestClassroom = 0
+  // What the data on screen belongs to: a load for anything else clears it first, so a
+  // page never shows the previous topic, student, attempt or classroom under a new title.
+  let topicKey: string | null = null
+  let attemptKey: string | null = null
+  let classroomKey: string | null = null
 
   /** Badges are a bonus on the topic list: if they cannot load, the list just shows none. */
   async function loadSubject(subjectId: string): Promise<void> {
     const request = ++latestSubject
+
+    if (subjectTiersFor.value !== subjectId) {
+      subjectTiersFor.value = null
+      subjectTiers.value = {}
+    }
 
     try {
       const snapshot = await readThrough(`quiz:progress:subject:${subjectId}`, () => progressRepository.subjectProgress(subjectId))
 
       if (request === latestSubject) {
         subjectTiers.value = Object.fromEntries(snapshot.value.map((p) => [p.topicId, p]))
+        subjectTiersFor.value = subjectId
       }
     } catch {
       if (request === latestSubject) {
         subjectTiers.value = {}
+        subjectTiersFor.value = null
       }
     }
   }
@@ -77,6 +91,15 @@ export const useProgressStore = defineStore('progress', () => {
   async function loadTopic(source: ProgressSource, topicId: string, options: { celebrate?: boolean } = {}): Promise<void> {
     const request = ++latestTopic
     const scope = scopeOf(source)
+    const key = `${scope}:${topicId}`
+
+    if (topicKey !== key) {
+      topicKey = key
+      history.value = null
+      wrong.value = []
+      savedAt.value = null
+    }
+
     loading.value = true
     error.value = null
 
@@ -114,6 +137,14 @@ export const useProgressStore = defineStore('progress', () => {
 
   async function loadAttempt(source: ProgressSource, attemptId: string): Promise<void> {
     const request = ++latestAttempt
+    const key = `${scopeOf(source)}:${attemptId}`
+
+    if (attemptKey !== key) {
+      attemptKey = key
+      reviewed.value = null
+      reviewSavedAt.value = null
+    }
+
     reviewLoading.value = true
     reviewError.value = null
 
@@ -139,6 +170,13 @@ export const useProgressStore = defineStore('progress', () => {
 
   async function loadClassroom(classroomId: string): Promise<void> {
     const request = ++latestClassroom
+
+    if (classroomKey !== classroomId) {
+      classroomKey = classroomId
+      classroom.value = []
+      classroomSavedAt.value = null
+    }
+
     classroomLoading.value = true
     classroomError.value = null
 
@@ -171,7 +209,11 @@ export const useProgressStore = defineStore('progress', () => {
     latestTopic += 1
     latestAttempt += 1
     latestClassroom += 1
+    topicKey = null
+    attemptKey = null
+    classroomKey = null
     subjectTiers.value = {}
+    subjectTiersFor.value = null
     history.value = null
     wrong.value = []
     savedAt.value = null
@@ -190,6 +232,7 @@ export const useProgressStore = defineStore('progress', () => {
 
   return {
     subjectTiers,
+    subjectTiersFor,
     history,
     wrong,
     savedAt,
