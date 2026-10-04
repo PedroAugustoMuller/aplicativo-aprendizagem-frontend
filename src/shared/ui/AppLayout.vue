@@ -14,6 +14,7 @@ import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useRosterStore } from '@/modules/identity/application/rosterStore'
 import { useQuizStore } from '@/modules/quiz/application/quizStore'
+import { useProgressStore } from '@/modules/quiz/application/progressStore'
 import PendingAnswersChip from '@/modules/quiz/presentation/PendingAnswersChip.vue'
 import { clearOfflineData } from '@/shared/offline/readThrough'
 import { navItemsFor } from '@/shared/ui/navigation'
@@ -43,6 +44,7 @@ const teachers = useTeacherStore()
 const classrooms = useClassroomStore()
 const roster = useRosterStore()
 const quiz = useQuizStore()
+const progress = useProgressStore()
 
 // Sign-out and an expired token both end here: the next person on this phone
 // must not see (or briefly flash) the previous session's content.
@@ -58,6 +60,7 @@ watch(
       roster.reset()
       // In memory only: the device copy of unsent answers survives an expired session.
       quiz.reset()
+      progress.reset()
     }
   },
 )

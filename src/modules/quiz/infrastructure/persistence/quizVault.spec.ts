@@ -61,4 +61,16 @@ describe('quizVault', () => {
     await expect(vault.readQuiz('u-1', 'a-1')).resolves.toBeNull()
     await expect(vault.outbox('u-1')).resolves.toEqual([])
   })
+
+  it('remembers which attempts were celebrated, per user, until that user is cleared', async () => {
+    const vault = createQuizVault(createMemoryStorage())
+
+    expect(await vault.celebrated('u-1', 'a-1')).toBe(false)
+    await vault.markCelebrated('u-1', 'a-1')
+    expect(await vault.celebrated('u-1', 'a-1')).toBe(true)
+    expect(await vault.celebrated('u-2', 'a-1')).toBe(false)
+
+    await vault.clear('u-1')
+    expect(await vault.celebrated('u-1', 'a-1')).toBe(false)
+  })
 })

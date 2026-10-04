@@ -15,6 +15,7 @@ import { i18n } from '@/shared/i18n'
 import { configureOffline, readThrough } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
 import { useQuizStore } from '@/modules/quiz/application/quizStore'
+import { useProgressStore } from '@/modules/quiz/application/progressStore'
 import { configureViewerId } from '@/shared/auth/viewer'
 import { ApiError } from '@/shared/api/error'
 
@@ -179,6 +180,7 @@ describe('AppLayout', () => {
     useSubjectStore().$patch({ subjects: [{ id: 's-1', name: 'Química', active: true, canAuthor: false }] })
     useTopicStore().$patch({ subjectId: 's-1', topics: [{ id: 't-1', name: 'Átomos', description: 'x', position: 1, active: true, questionCount: null }] })
     useQuestionStore().$patch({ topicId: 't-1' })
+    useProgressStore().$patch({ subjectTiers: { 't-1': { topicId: 't-1', points: 60, tier: 'bronze', nextTier: null } } })
     await render()
 
     useSessionStore().clear()
@@ -188,6 +190,7 @@ describe('AppLayout', () => {
     expect(useTopicStore().topics).toEqual([])
     expect(useTopicStore().subjectId).toBeNull()
     expect(useQuestionStore().topicId).toBeNull()
+    expect(useProgressStore().subjectTiers).toEqual({})
   })
 
   it('wipes the previous user\'s saved lists from this phone when the session ends', async () => {

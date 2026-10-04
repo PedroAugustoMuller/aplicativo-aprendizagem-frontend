@@ -11,12 +11,16 @@ export interface QuizVault {
   setOpen(userId: string, topicId: string, attemptId: string | null): Promise<void>
   outbox(userId: string): Promise<PendingAnswer[]>
   writeOutbox(userId: string, entries: readonly PendingAnswer[]): Promise<void>
+  /** Whether this attempt's level-up was already shown on this device. */
+  celebrated(userId: string, attemptId: string): Promise<boolean>
+  markCelebrated(userId: string, attemptId: string): Promise<void>
   clear(userId: string): Promise<void>
 }
 
 const quizKey = (userId: string, attemptId: string): string => `${userId}:quiz:attempt:${attemptId}`
 const openKey = (userId: string, topicId: string): string => `${userId}:quiz:open:${topicId}`
 const outboxKey = (userId: string): string => `${userId}:quiz:outbox`
+const celebratedKey = (userId: string, attemptId: string): string => `${userId}:quiz:celebrated:${attemptId}`
 
 // IndexedDB cannot clone Vue's reactive proxies, and a later change to a live value
 // must not reach what was saved: always store a plain copy. Everything here is JSON.
@@ -52,6 +56,10 @@ export function createQuizVault(storage: OfflineStorage): QuizVault {
       return isPendingList(raw) ? raw : []
     },
     writeOutbox: (userId, entries) => storage.set(outboxKey(userId), plain([...entries])),
+    async celebrated(userId, attemptId) {
+      return (await storage.get(celebratedKey(userId, attemptId))) === true
+    },
+    markCelebrated: (userId, attemptId) => storage.set(celebratedKey(userId, attemptId), true),
     async clear(userId) {
       const prefix = `${userId}:`
       const all = await storage.keys()
