@@ -19,6 +19,12 @@ vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({
   topicRepository: { listBySubject: vi.fn().mockResolvedValue([{ id: 't-1', name: 'Átomos', description: '', position: 0, active: true, questionCount: null }]) },
 }))
+vi.mock('@/modules/quiz/infrastructure/HttpProgressRepository', () => ({
+  progressRepository: {
+    subjectProgress: vi.fn().mockResolvedValue([{ topicId: 't-1', points: 180, tier: 'silver', nextTier: { tier: 'gold', points: 300 } }]),
+    topicHistory: vi.fn(), wrongQuestions: vi.fn(), attempt: vi.fn(), classroomProgress: vi.fn(),
+  },
+}))
 vi.mock('@/modules/quiz/infrastructure/HttpQuizRepository', () => ({ quizRepository: { start: vi.fn(), get: vi.fn(), answer: vi.fn() } }))
 
 const vuetify = createVuetify({ components, directives })
@@ -41,5 +47,30 @@ describe('TopicsWithQuiz', () => {
 
     expect(wrapper.find('[data-testid="topic-t-1"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="quiz-start-t-1"]').exists()).toBe(true)
+  })
+
+  it('shows a student their tier on each topic card, linking to their progress', async () => {
+    configureViewer(() => 'student')
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/subjects/:subjectId/topics', component: TopicsWithQuiz }, { path: '/:any(.*)*', component: { render: () => null } }] })
+    await router.push('/subjects/s-1/topics')
+
+    const wrapper = mount({ render: () => h(RouterView) }, { global: { plugins: [vuetify, i18n, router] } })
+    await flushPromises()
+
+    const badge = wrapper.get('[data-testid="topic-tier-t-1"]')
+    expect(badge.text()).toContain('Prata · 180 pts')
+    expect(badge.attributes('href')).toBe('/subjects/s-1/topics/t-1/progress')
+  })
+
+  it('shows staff no tier badges', async () => {
+    configureViewer(() => 'teacher')
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/subjects/:subjectId/topics', component: TopicsWithQuiz }] })
+    await router.push('/subjects/s-1/topics')
+
+    const wrapper = mount({ render: () => h(RouterView) }, { global: { plugins: [vuetify, i18n, router] } })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="topic-t-1"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="topic-tier-t-1"]').exists()).toBe(false)
   })
 })
