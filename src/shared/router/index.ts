@@ -73,6 +73,18 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
+      path: '/subjects/:subjectId/topics/:topicId/progress',
+      name: 'topic-progress',
+      component: () => import('@/shared/ui/TopicProgressRoute.vue'),
+      meta: { requiresAuth: true, roles: ['student'] },
+    },
+    {
+      path: '/classrooms/:classroomId/students/:studentId/topics/:topicId/progress',
+      name: 'student-topic-progress',
+      component: () => import('@/shared/ui/TopicProgressRoute.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
       path: '/subjects/:subjectId/topics/:topicId/review',
       name: 'topic-wrong-questions',
       component: () => import('@/modules/quiz/presentation/WrongQuestionsPage.vue'),

@@ -16,6 +16,8 @@ import type { Attempt } from '@/modules/quiz/domain/Attempt'
 // presentation/ never reaches infrastructure/: mock the repository by path, seed through the store.
 const { start, get, answer } = vi.hoisted(() => ({ start: vi.fn(), get: vi.fn(), answer: vi.fn() }))
 vi.mock('@/modules/quiz/infrastructure/HttpQuizRepository', () => ({ quizRepository: { start, get, answer } }))
+const progressApi = vi.hoisted(() => ({ subjectProgress: vi.fn(), topicHistory: vi.fn(), wrongQuestions: vi.fn(), attempt: vi.fn(), classroomProgress: vi.fn() }))
+vi.mock('@/modules/quiz/infrastructure/HttpProgressRepository', () => ({ progressRepository: progressApi }))
 
 const vuetify = createVuetify({ components, directives })
 const Stub = { render: () => null }
@@ -137,6 +139,39 @@ describe('QuizPage', () => {
     expect(wrapper.find('[data-testid="quiz-result-1"]').text()).toContain('Aguardando envio')
     expect(wrapper.find('[data-testid="quiz-results-back"]').attributes('href')).toBe('/subjects/s-1/topics')
     expect(wrapper.find('[data-testid="quiz-new"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('ends a fully graded quiz with the topic tier', async () => {
+    progressApi.topicHistory.mockResolvedValue({
+      points: 60, tier: 'bronze', nextTier: { tier: 'silver', points: 150 },
+      attempts: [{ id: 'a-1', startedAt: 's', completedAt: 'c', total: 2, answered: 2, correct: 2, pointsBefore: 40, pointsAfter: 60, pointsChange: 20, tierBefore: 'iron', tierAfter: 'bronze' }],
+    })
+    progressApi.wrongQuestions.mockResolvedValue([])
+    answer.mockResolvedValueOnce(outcome('q1', 'q1-v', 'q1-v')).mockResolvedValueOnce(outcome('q2', 'q2-na', 'q2-na'))
+    const { wrapper } = await render()
+
+    await respond(wrapper, 0)
+    await wrapper.find('[data-testid="quiz-next"]').trigger('click')
+    await respond(wrapper, 1)
+    await wrapper.find('[data-testid="quiz-next"]').trigger('click')
+    await flushPromises()
+
+    expect(progressApi.topicHistory).toHaveBeenCalledWith({ kind: 'own' }, 't-1')
+    expect(wrapper.find('[data-testid="quiz-results-tier"]').text()).toBe('Você está no nível Bronze (60 pts)')
+  })
+
+  it('shows no tier while answers wait to be sent', async () => {
+    answer.mockResolvedValueOnce(outcome('q1', 'q1-v', 'q1-v')).mockImplementation(offline)
+    const { wrapper } = await render()
+
+    await respond(wrapper, 0)
+    await wrapper.find('[data-testid="quiz-next"]').trigger('click')
+    await respond(wrapper, 1)
+    await wrapper.find('[data-testid="quiz-next"]').trigger('click')
+    await flushPromises()
+
+    expect(progressApi.topicHistory).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="quiz-results-tier"]').exists()).toBe(false)
   })
 
   it('shows the translated error when the quiz is unknown and nothing was saved', async () => {

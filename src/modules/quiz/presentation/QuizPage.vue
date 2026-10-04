@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { mdiArrowLeft } from '@mdi/js'
 import { useQuizStore } from '@/modules/quiz/application/quizStore'
-import { firstUnanswered } from '@/modules/quiz/domain/playState'
+import { useProgressStore } from '@/modules/quiz/application/progressStore'
+import { firstUnanswered, progress as answerProgress } from '@/modules/quiz/domain/playState'
 import { ApiError } from '@/shared/api/error'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
@@ -26,6 +27,32 @@ const backTo = computed(() => (quiz.value && quiz.value.subjectId !== '' ? `/sub
 const starting = ref(false)
 const startError = ref<ApiError | null>(null)
 const startMessage = computed(() => (startError.value === null ? null : apiErrorMessage(startError.value, t, te)))
+
+const progressStore = useProgressStore()
+// Finished and every answer graded by the server: it now knows the new balance.
+const settled = computed(() => {
+  const q = quiz.value
+
+  if (q === null || current.value !== null) {
+    return false
+  }
+
+  const totals = answerProgress(q)
+
+  return totals.pending === 0 && totals.failed === 0
+})
+// Only fresh server data: a saved offline copy may predate this quiz.
+const tierLine = computed(() => {
+  const h = progressStore.history
+
+  return settled.value && h !== null && !progressStore.loading && progressStore.savedAt === null ? { tier: h.tier, points: h.points } : null
+})
+
+watch(settled, (now) => {
+  if (now && quiz.value !== null) {
+    void progressStore.loadTopic({ kind: 'own' }, quiz.value.attempt.topicId, { celebrate: true })
+  }
+}, { immediate: true })
 
 function answerCurrent(optionId: string): void {
   if (current.value !== null) {
@@ -129,6 +156,7 @@ watch(attemptId, load, { immediate: true })
           :quiz="quiz"
           :back-to="backTo"
           :busy="starting"
+          :tier-line="tierLine"
           @new-quiz="startNew"
         />
       </template>
