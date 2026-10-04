@@ -73,6 +73,30 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
+      path: '/subjects/:subjectId/topics/:topicId/review',
+      name: 'topic-wrong-questions',
+      component: () => import('@/modules/quiz/presentation/WrongQuestionsPage.vue'),
+      meta: { requiresAuth: true, roles: ['student'] },
+    },
+    {
+      path: '/classrooms/:classroomId/students/:studentId/quiz/:attemptId/review',
+      name: 'student-quiz-review',
+      component: () => import('@/modules/quiz/presentation/AttemptReviewPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
+      path: '/classrooms/:classroomId/students/:studentId/topics/:topicId/review',
+      name: 'student-wrong-questions',
+      component: () => import('@/modules/quiz/presentation/WrongQuestionsPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
+      path: '/quiz/:attemptId/review',
+      name: 'quiz-review',
+      component: () => import('@/modules/quiz/presentation/AttemptReviewPage.vue'),
+      meta: { requiresAuth: true, roles: ['student'] },
+    },
+    {
       path: '/quiz/:attemptId',
       name: 'quiz',
       component: () => import('@/modules/quiz/presentation/QuizPage.vue'),
