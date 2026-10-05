@@ -1,5 +1,5 @@
 import type { Attempt } from '@/modules/quiz/domain/Attempt'
-import type { ProgressSource, StudentProgress, TopicHistory, TopicProgress, WrongQuestion } from '@/modules/quiz/domain/Progress'
+import type { ProgressSource, QuestionSummary, StudentProgress, SummaryScope, TopicHistory, TopicProgress, WrongQuestion } from '@/modules/quiz/domain/Progress'
 
 export interface ProgressRepository {
   /** Only topics with answers; the others are iron at 0. */
@@ -8,4 +8,5 @@ export interface ProgressRepository {
   wrongQuestions(source: ProgressSource, topicId: string): Promise<WrongQuestion[]>
   attempt(source: ProgressSource, attemptId: string): Promise<Attempt>
   classroomProgress(classroomId: string): Promise<StudentProgress[]>
+  questionSummary(scope: SummaryScope, topicId: string): Promise<QuestionSummary>
 }

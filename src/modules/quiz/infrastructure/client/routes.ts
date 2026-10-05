@@ -9,4 +9,6 @@ export const quizRoutes = {
   studentTopicHistory: '/classrooms/:classroomId/students/:studentId/topics/:topicId/quiz-history',
   studentWrongQuestions: '/classrooms/:classroomId/students/:studentId/topics/:topicId/wrong-questions',
   studentAttempt: '/classrooms/:classroomId/students/:studentId/quiz-attempts/:attemptId',
+  classroomQuestionSummary: '/classrooms/:classroomId/topics/:topicId/question-summary',
+  subjectQuestionSummary: '/topics/:topicId/question-summary',
 } as const

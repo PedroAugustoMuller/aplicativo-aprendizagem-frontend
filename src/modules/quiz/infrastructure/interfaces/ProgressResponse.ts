@@ -46,3 +46,18 @@ export interface WrongQuestionResponse {
 export interface ClassroomProgressResponse {
   students: { id: string; name: string; username: string; topics: { topic_id: string; points: number; tier: string }[] }[]
 }
+
+export interface QuestionSummaryResponse {
+  students: number
+  questions: {
+    question_id: string
+    type: 'multiple_choice' | 'true_false'
+    statement: string
+    answered: number
+    wrong: number
+    wrong_percent: number
+    correct_option_id: string
+    options: { id: string; text: string; chosen: number }[]
+    other_chosen: number
+  }[]
+}

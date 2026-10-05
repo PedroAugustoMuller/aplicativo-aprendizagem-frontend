@@ -5,7 +5,7 @@ import { quizVault } from '@/modules/quiz/infrastructure/persistence/quizVault'
 import { readThrough } from '@/shared/offline/readThrough'
 import { viewerId } from '@/shared/auth/viewer'
 import { ApiError } from '@/shared/api/error'
-import { levelUpOf, type ProgressSource, type StudentProgress, type Tier, type TopicHistory, type TopicProgress, type WrongQuestion } from '@/modules/quiz/domain/Progress'
+import { levelUpOf, type ProgressSource, type QuestionSummary, type StudentProgress, type SummaryScope, type Tier, type TopicHistory, type TopicProgress, type WrongQuestion } from '@/modules/quiz/domain/Progress'
 import type { Attempt } from '@/modules/quiz/domain/Attempt'
 
 const asApiError = (failure: unknown): ApiError => (failure instanceof ApiError ? failure : new ApiError('system.unexpected_error'))
@@ -34,6 +34,11 @@ export const useProgressStore = defineStore('progress', () => {
   const classroomLoading = ref(false)
   const classroomError = ref<ApiError | null>(null)
 
+  const summary = ref<QuestionSummary | null>(null)
+  const summarySavedAt = ref<Date | null>(null)
+  const summaryLoading = ref(false)
+  const summaryError = ref<ApiError | null>(null)
+
   const celebration = ref<Tier | null>(null)
 
   // Only the latest load of each kind may write; an older, slower response loses.
@@ -41,11 +46,13 @@ export const useProgressStore = defineStore('progress', () => {
   let latestTopic = 0
   let latestAttempt = 0
   let latestClassroom = 0
+  let latestSummary = 0
   // What the data on screen belongs to: a load for anything else clears it first, so a
   // page never shows the previous topic, student, attempt or classroom under a new title.
   let topicKey: string | null = null
   let attemptKey: string | null = null
   let classroomKey: string | null = null
+  let summaryKey: string | null = null
 
   /** Badges are a bonus on the topic list: if they cannot load, the list just shows none. */
   async function loadSubject(subjectId: string): Promise<void> {
@@ -200,6 +207,39 @@ export const useProgressStore = defineStore('progress', () => {
     }
   }
 
+  async function loadSummary(scope: SummaryScope, topicId: string): Promise<void> {
+    const request = ++latestSummary
+    const key = `${scope.kind === 'classroom' ? scope.classroomId : 'all'}:${topicId}`
+
+    if (summaryKey !== key) {
+      summaryKey = key
+      summary.value = null
+      summarySavedAt.value = null
+    }
+
+    summaryLoading.value = true
+    summaryError.value = null
+
+    try {
+      const snapshot = await readThrough(`quiz:progress:summary:${key}`, () => progressRepository.questionSummary(scope, topicId))
+
+      if (request === latestSummary) {
+        summary.value = snapshot.value
+        summarySavedAt.value = snapshot.savedAt
+      }
+    } catch (failure: unknown) {
+      if (request === latestSummary) {
+        summaryError.value = asApiError(failure)
+        summary.value = null
+        summarySavedAt.value = null
+      }
+    } finally {
+      if (request === latestSummary) {
+        summaryLoading.value = false
+      }
+    }
+  }
+
   function dismissCelebration(): void {
     celebration.value = null
   }
@@ -209,9 +249,11 @@ export const useProgressStore = defineStore('progress', () => {
     latestTopic += 1
     latestAttempt += 1
     latestClassroom += 1
+    latestSummary += 1
     topicKey = null
     attemptKey = null
     classroomKey = null
+    summaryKey = null
     subjectTiers.value = {}
     subjectTiersFor.value = null
     history.value = null
@@ -227,6 +269,10 @@ export const useProgressStore = defineStore('progress', () => {
     classroomSavedAt.value = null
     classroomLoading.value = false
     classroomError.value = null
+    summary.value = null
+    summarySavedAt.value = null
+    summaryLoading.value = false
+    summaryError.value = null
     celebration.value = null
   }
 
@@ -246,11 +292,16 @@ export const useProgressStore = defineStore('progress', () => {
     classroomSavedAt,
     classroomLoading,
     classroomError,
+    summary,
+    summarySavedAt,
+    summaryLoading,
+    summaryError,
     celebration,
     loadSubject,
     loadTopic,
     loadAttempt,
     loadClassroom,
+    loadSummary,
     dismissCelebration,
     reset,
   }

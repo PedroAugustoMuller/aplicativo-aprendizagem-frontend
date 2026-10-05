@@ -66,6 +66,39 @@ export interface StudentProgress {
   readonly topics: readonly StudentTopicTier[]
 }
 
+export interface OptionTally {
+  readonly id: string
+  readonly text: string
+  /** Students whose latest answer picked this option. */
+  readonly chosen: number
+}
+
+/** How a group of students did on one question, each counted once by their latest answer. */
+export interface QuestionStats {
+  readonly questionId: string
+  readonly type: QuizQuestionType
+  readonly statement: string
+  readonly answered: number
+  readonly wrong: number
+  readonly wrongPercent: number
+  readonly correctOptionId: string
+  readonly options: readonly OptionTally[]
+  /** Latest answers on an option a later edit removed. */
+  readonly otherChosen: number
+}
+
+export interface QuestionSummary {
+  /** Students in scope, answered or not. */
+  readonly students: number
+  /** Most wrong first. */
+  readonly questions: readonly QuestionStats[]
+}
+
+/** One classroom, or every classroom of the topic's subject the viewer may read. */
+export type SummaryScope =
+  | { readonly kind: 'classroom'; readonly classroomId: string }
+  | { readonly kind: 'subject' }
+
 /** Whose progress a page shows: the viewer's own, or a classroom student's (staff). */
 export type ProgressSource =
   | { readonly kind: 'own' }

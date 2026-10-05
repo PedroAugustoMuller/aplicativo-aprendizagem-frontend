@@ -1,7 +1,7 @@
 import { api } from '@/shared/api/client'
 import { quizRoutes } from '@/modules/quiz/infrastructure/client/routes'
 import type { AnswerBody, AnswerResponse, AttemptResponse } from '@/modules/quiz/infrastructure/interfaces/AttemptResponse'
-import type { ClassroomProgressResponse, TopicHistoryResponse, TopicProgressResponse, WrongQuestionResponse } from '@/modules/quiz/infrastructure/interfaces/ProgressResponse'
+import type { ClassroomProgressResponse, QuestionSummaryResponse, TopicHistoryResponse, TopicProgressResponse, WrongQuestionResponse } from '@/modules/quiz/infrastructure/interfaces/ProgressResponse'
 
 export const quizRequests = {
   start: (topicId: string, data: { id: string }) =>
@@ -20,4 +20,8 @@ export const quizRequests = {
     api.get<WrongQuestionResponse[]>({ url: quizRoutes.studentWrongQuestions, urlParams: { classroomId, studentId, topicId } }),
   studentAttempt: (classroomId: string, studentId: string, attemptId: string) =>
     api.get<AttemptResponse>({ url: quizRoutes.studentAttempt, urlParams: { classroomId, studentId, attemptId } }),
+  classroomQuestionSummary: (classroomId: string, topicId: string) =>
+    api.get<QuestionSummaryResponse>({ url: quizRoutes.classroomQuestionSummary, urlParams: { classroomId, topicId } }),
+  subjectQuestionSummary: (topicId: string) =>
+    api.get<QuestionSummaryResponse>({ url: quizRoutes.subjectQuestionSummary, urlParams: { topicId } }),
 }

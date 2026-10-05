@@ -1,8 +1,8 @@
 import { quizRequests } from '@/modules/quiz/infrastructure/client/requests'
 import { toAttempt } from '@/modules/quiz/infrastructure/attemptMapping'
-import { isTier, type NextTier, type Tier, type TopicHistory, type TopicProgress, type WrongQuestion } from '@/modules/quiz/domain/Progress'
+import { isTier, type NextTier, type QuestionSummary, type Tier, type TopicHistory, type TopicProgress, type WrongQuestion } from '@/modules/quiz/domain/Progress'
 import type { ProgressRepository } from '@/modules/quiz/domain/ProgressRepository'
-import type { NextTierResponse, TopicHistoryResponse, TopicProgressResponse, WrongQuestionResponse } from '@/modules/quiz/infrastructure/interfaces/ProgressResponse'
+import type { NextTierResponse, QuestionSummaryResponse, TopicHistoryResponse, TopicProgressResponse, WrongQuestionResponse } from '@/modules/quiz/infrastructure/interfaces/ProgressResponse'
 
 // A tier this build does not know (a newer backend) shows as the first one rather than breaking the page.
 const toTier = (code: string): Tier => (isTier(code) ? code : 'iron')
@@ -41,6 +41,21 @@ const toWrong = (r: WrongQuestionResponse): WrongQuestion => ({
   answeredAt: r.answered_at,
 })
 
+const toSummary = (r: QuestionSummaryResponse): QuestionSummary => ({
+  students: r.students,
+  questions: r.questions.map((q) => ({
+    questionId: q.question_id,
+    type: q.type,
+    statement: q.statement,
+    answered: q.answered,
+    wrong: q.wrong,
+    wrongPercent: q.wrong_percent,
+    correctOptionId: q.correct_option_id,
+    options: q.options.map((o) => ({ id: o.id, text: o.text, chosen: o.chosen })),
+    otherChosen: q.other_chosen,
+  })),
+})
+
 export const progressRepository: ProgressRepository = {
   async subjectProgress(subjectId) {
     return (await quizRequests.subjectProgress(subjectId)).map(toTopicProgress)
@@ -73,5 +88,11 @@ export const progressRepository: ProgressRepository = {
       username: s.username,
       topics: s.topics.map((t) => ({ topicId: t.topic_id, points: t.points, tier: toTier(t.tier) })),
     }))
+  },
+
+  async questionSummary(scope, topicId) {
+    return toSummary(scope.kind === 'classroom'
+      ? await quizRequests.classroomQuestionSummary(scope.classroomId, topicId)
+      : await quizRequests.subjectQuestionSummary(topicId))
   },
 }

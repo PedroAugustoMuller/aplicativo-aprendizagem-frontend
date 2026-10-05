@@ -8,7 +8,7 @@ import { ApiError } from '@/shared/api/error'
 import { OWN, type TopicHistory } from '@/modules/quiz/domain/Progress'
 
 const repo = vi.hoisted(() => ({
-  subjectProgress: vi.fn(), topicHistory: vi.fn(), wrongQuestions: vi.fn(), attempt: vi.fn(), classroomProgress: vi.fn(),
+  subjectProgress: vi.fn(), topicHistory: vi.fn(), wrongQuestions: vi.fn(), attempt: vi.fn(), classroomProgress: vi.fn(), questionSummary: vi.fn(),
 }))
 vi.mock('@/modules/quiz/infrastructure/HttpProgressRepository', () => ({ progressRepository: repo }))
 
@@ -217,5 +217,68 @@ describe('progressStore', () => {
     void store.loadTopic(OWN, 't-1')
 
     expect(store.history?.points).toBe(60)
+  })
+
+  describe('question summary', () => {
+    const SUMMARY = { students: 2, questions: [] }
+    const CLASSROOM = { kind: 'classroom', classroomId: 'c-1' } as const
+    const SUBJECT = { kind: 'subject' } as const
+
+    it('loads one classroom or the whole subject, and falls back to the saved copy offline', async () => {
+      const store = useProgressStore()
+      repo.questionSummary.mockResolvedValueOnce(SUMMARY).mockImplementationOnce(offline)
+
+      await store.loadSummary(CLASSROOM, 't-1')
+      expect(store.summary).toEqual(SUMMARY)
+      expect(store.summarySavedAt).toBeNull()
+      expect(repo.questionSummary).toHaveBeenCalledWith(CLASSROOM, 't-1')
+
+      await store.loadSummary(CLASSROOM, 't-1')
+      expect(store.summary).toEqual(SUMMARY)
+      expect(store.summarySavedAt).toBeInstanceOf(Date)
+    })
+
+    it('keeps the classroom and the subject copies apart', async () => {
+      const store = useProgressStore()
+      repo.questionSummary.mockResolvedValueOnce(SUMMARY).mockImplementationOnce(offline)
+
+      await store.loadSummary(CLASSROOM, 't-1')
+      await store.loadSummary(SUBJECT, 't-1')
+
+      expect(store.summary).toBeNull()
+      expect(store.summaryError?.code).toBe('api.network_unavailable')
+    })
+
+    it('lets only the latest load write and clears the screen when the scope changes', async () => {
+      const store = useProgressStore()
+      repo.questionSummary.mockResolvedValueOnce(SUMMARY)
+      await store.loadSummary(CLASSROOM, 't-1')
+
+      let release: (v: unknown) => void = () => undefined
+      repo.questionSummary.mockReturnValueOnce(new Promise((resolve) => { release = resolve }))
+      const slow = store.loadSummary(SUBJECT, 't-1')
+      expect(store.summary).toBeNull()
+      expect(store.summaryLoading).toBe(true)
+
+      repo.questionSummary.mockResolvedValueOnce({ students: 5, questions: [] })
+      await store.loadSummary(CLASSROOM, 't-2')
+      release({ students: 99, questions: [] })
+      await slow
+
+      expect(store.summary?.students).toBe(5)
+      expect(store.summaryLoading).toBe(false)
+    })
+
+    it('reports a failure and forgets the summary on reset', async () => {
+      const store = useProgressStore()
+      repo.questionSummary.mockRejectedValueOnce(new ApiError('auth.forbidden')).mockResolvedValueOnce(SUMMARY)
+
+      await store.loadSummary(SUBJECT, 't-1')
+      expect(store.summaryError?.code).toBe('auth.forbidden')
+
+      await store.loadSummary(CLASSROOM, 't-1')
+      store.reset()
+      expect([store.summary, store.summarySavedAt, store.summaryError, store.summaryLoading]).toEqual([null, null, null, false])
+    })
   })
 })

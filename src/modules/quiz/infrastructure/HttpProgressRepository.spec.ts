@@ -9,6 +9,7 @@ vi.mock('@/modules/quiz/infrastructure/client/requests', () => ({
     start: vi.fn(), get: vi.fn(), answer: vi.fn(),
     subjectProgress: vi.fn(), topicHistory: vi.fn(), wrongQuestions: vi.fn(), classroomProgress: vi.fn(),
     studentTopicHistory: vi.fn(), studentWrongQuestions: vi.fn(), studentAttempt: vi.fn(),
+    classroomQuestionSummary: vi.fn(), subjectQuestionSummary: vi.fn(),
   },
 }))
 
@@ -115,5 +116,32 @@ describe('progress domain', () => {
 
   it('thresholds match the backend', () => {
     expect(TIER_THRESHOLDS).toEqual({ iron: 0, bronze: 50, silver: 150, gold: 300, emerald: 500, diamond: 800 })
+  })
+})
+
+describe('progressRepository question summary', () => {
+  beforeEach(() => vi.resetAllMocks())
+
+  it('reads one classroom summary or all classrooms of the subject, and maps it', async () => {
+    const response = {
+      students: 18,
+      questions: [{
+        question_id: 'q-1', type: 'multiple_choice' as const, statement: 'Qual?', answered: 18, wrong: 13, wrong_percent: 72,
+        correct_option_id: 'o-1', options: [{ id: 'o-1', text: 'Certa', chosen: 5 }, { id: 'o-2', text: 'Errada', chosen: 13 }], other_chosen: 0,
+      }],
+    }
+    vi.mocked(quizRequests.classroomQuestionSummary).mockResolvedValue(response)
+    vi.mocked(quizRequests.subjectQuestionSummary).mockResolvedValue({ students: 0, questions: [] })
+
+    expect(await progressRepository.questionSummary({ kind: 'classroom', classroomId: 'c-1' }, 't-1')).toEqual({
+      students: 18,
+      questions: [{
+        questionId: 'q-1', type: 'multiple_choice', statement: 'Qual?', answered: 18, wrong: 13, wrongPercent: 72,
+        correctOptionId: 'o-1', options: [{ id: 'o-1', text: 'Certa', chosen: 5 }, { id: 'o-2', text: 'Errada', chosen: 13 }], otherChosen: 0,
+      }],
+    })
+    expect(await progressRepository.questionSummary({ kind: 'subject' }, 't-1')).toEqual({ students: 0, questions: [] })
+    expect(quizRequests.classroomQuestionSummary).toHaveBeenCalledWith('c-1', 't-1')
+    expect(quizRequests.subjectQuestionSummary).toHaveBeenCalledWith('t-1')
   })
 })
