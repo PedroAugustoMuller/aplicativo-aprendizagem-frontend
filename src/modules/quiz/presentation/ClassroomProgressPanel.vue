@@ -17,6 +17,7 @@ const store = useProgressStore()
 const cellOf = (student: StudentProgress, topicId: string): StudentTopicTier =>
   student.topics.find((topic) => topic.topicId === topicId) ?? { topicId, points: 0, tier: 'iron' }
 const linkOf = (studentId: string, topicId: string): string => `/classrooms/${props.classroomId}/students/${studentId}/topics/${topicId}/progress`
+const summaryLinkOf = (topicId: string): string => `/classrooms/${props.classroomId}/topics/${topicId}/questions`
 const empty = computed(() => !store.classroomLoading && store.classroomError === null && store.classroom.length === 0)
 
 const load = (): Promise<void> => store.loadClassroom(props.classroomId)
@@ -62,7 +63,13 @@ watch(() => props.classroomId, load, { immediate: true })
             v-for="topic in topics"
             :key="topic.id"
           >
-            {{ topic.name }}
+            <router-link
+              :to="summaryLinkOf(topic.id)"
+              :title="t('progress.questions.link')"
+              :data-testid="`classroom-progress-topic-${topic.id}`"
+            >
+              {{ topic.name }}
+            </router-link>
           </th>
         </tr>
       </thead>
@@ -95,6 +102,18 @@ watch(() => props.classroomId, load, { immediate: true })
       v-else
       data-testid="classroom-progress-list"
     >
+      <div class="d-flex flex-wrap align-center ga-2 mb-4">
+        <span class="text-body-2 text-medium-emphasis">{{ t('progress.questions.chipsLabel') }}</span>
+        <v-chip
+          v-for="topic in topics"
+          :key="topic.id"
+          :to="summaryLinkOf(topic.id)"
+          size="small"
+          :data-testid="`classroom-progress-topic-${topic.id}`"
+        >
+          {{ topic.name }}
+        </v-chip>
+      </div>
       <v-card
         v-for="student in store.classroom"
         :key="student.id"

@@ -58,4 +58,14 @@ describe('ClassroomProgressPanel', () => {
 
     expect(wrapper.get('[data-testid="classroom-progress-empty"]').text()).toBe('Nenhum aluno nesta turma.')
   })
+
+  it.each([1280, 375])('at %ipx links each topic to its question summary', async (width) => {
+    const wrapper = await render(width)
+
+    for (const topic of TOPICS) {
+      const link = wrapper.get(`[data-testid="classroom-progress-topic-${topic.id}"]`)
+      expect(link.text()).toContain(topic.name)
+      expect(link.attributes('href')).toBe(`/classrooms/c-1/topics/${topic.id}/questions`)
+    }
+  })
 })
