@@ -49,17 +49,23 @@ watch(() => [props.scope, props.classroomId, props.topicId], load, { immediate: 
       variant="outlined"
       density="comfortable"
       color="primary"
-      class="my-3"
+      class="my-3 flex-wrap h-auto"
+      data-testid="question-summary-scope"
       @update:model-value="(value: Scope) => emit('update:scope', value)"
     >
       <v-btn
         value="classroom"
+        class="text-none"
         data-testid="question-summary-scope-classroom"
       >
-        {{ classroomName }}
+        <span
+          class="text-truncate"
+          style="max-width: 12rem"
+        >{{ classroomName }}</span>
       </v-btn>
       <v-btn
         value="all"
+        class="text-none"
         data-testid="question-summary-scope-all"
       >
         {{ admin ? t('progress.questions.allSubject') : t('progress.questions.allMine') }}
@@ -107,7 +113,11 @@ watch(() => [props.scope, props.classroomId, props.topicId], load, { immediate: 
             class="mb-3"
           >
             <div class="d-flex flex-wrap justify-space-between ga-2 mb-1">
-              <strong :class="bandOf(question.wrongPercent) === 'low' ? '' : `text-${BAND_COLOR[bandOf(question.wrongPercent)]}`">
+              <!-- Amber text is unreadable on white: only the high band colours the text, the bar carries the band. -->
+              <strong
+                :class="bandOf(question.wrongPercent) === 'high' ? 'text-error' : ''"
+                :data-testid="`question-summary-percent-${question.questionId}`"
+              >
                 {{ t('progress.questions.wrong', { percent: question.wrongPercent }) }}
               </strong>
               <span class="text-medium-emphasis">

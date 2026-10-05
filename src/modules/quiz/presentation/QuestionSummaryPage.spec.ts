@@ -131,4 +131,25 @@ describe('QuestionSummaryPage', () => {
     const failed = await render({ scope: 'all' })
     expect(failed.find('[data-testid="question-summary-error"]').exists()).toBe(true)
   })
+
+  it('writes the percentage in a readable colour: only the high band is coloured text (RNF06)', async () => {
+    repo.questionSummary.mockResolvedValue({ students: 100, questions: [stats('q-mid', 45, 100), stats('q-high', 80, 100)] })
+    const wrapper = await render()
+
+    expect(wrapper.get('[data-testid="question-summary-percent-q-mid"]').classes()).not.toContain('text-warning')
+    expect(wrapper.get('[data-testid="question-summary-percent-q-high"]').classes()).toContain('text-error')
+  })
+
+  it('lets the scope switch wrap and cuts a long classroom name on a phone', async () => {
+    const wrapper = mount(QuestionSummaryPage, {
+      props: { classroomId: 'c-1', classroomName: '9º Ano A — Ensino Fundamental Período Vespertino', topicId: 't-1', topicName: 'T', scope: 'classroom', admin: true },
+      global: { plugins: [vuetify, i18n, createRouter({ history: createMemoryHistory(), routes: [{ path: '/:any(.*)*', component: { render: () => null } }] })] },
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="question-summary-scope"]').classes()).toContain('flex-wrap')
+    const classroom = wrapper.get('[data-testid="question-summary-scope-classroom"]')
+    expect(classroom.classes()).toContain('text-none')
+    expect(classroom.find('.text-truncate').exists()).toBe(true)
+  })
 })
