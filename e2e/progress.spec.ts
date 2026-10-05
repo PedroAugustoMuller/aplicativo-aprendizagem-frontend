@@ -63,10 +63,28 @@ test.describe('staff follow a classroom', () => {
     await expect(page).toHaveURL(new RegExp(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/progress$`))
 
     const cell = page.locator(`[data-testid^="classroom-progress-cell-${CARLA_ID}-"]`).first()
-    await expect(cell).toContainText(/\d+ pts$/)
+    // Every e2e run enrols more students in this classroom; on the phone layout the whole
+    // grid renders in ~5 s under the parallel suite, past the default 5 s.
+    await expect(cell).toContainText(/\d+ pts$/, { timeout: 15_000 })
     await cell.click()
 
     await expect(page.getByTestId('progress-student')).toHaveText('Desempenho de Carla Dias')
     await expect(page.getByTestId('progress-to-next')).toBeVisible()
+  })
+
+  test('sees which questions the classroom gets wrong, then all classrooms', async ({ page }) => {
+    await page.goto(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/progress`)
+    const topic = page.locator('[data-testid^="classroom-progress-topic-"]', { hasText: 'Tabela Periódica' })
+    await topic.click()
+    await expect(page).toHaveURL(new RegExp(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/topics/[^/]+/questions$`))
+
+    // Counts depend on what earlier e2e runs left in the development database: check the shape.
+    await expect(page.getByTestId('question-summary-context')).toHaveText(/^\d+ alunos · \d+ questões respondidas$/)
+    await expect(page.locator('[data-testid^="question-summary-band-"]').first()).toContainText(/\d+% erraram/)
+    await expect(page.getByText('resposta certa').first()).toBeVisible()
+
+    await page.getByTestId('question-summary-scope-all').click()
+    await expect(page).toHaveURL(/\?scope=all$/)
+    await expect(page.getByTestId('question-summary-context')).toHaveText(/^\d+ alunos/)
   })
 })
