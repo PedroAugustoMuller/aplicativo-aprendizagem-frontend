@@ -35,7 +35,9 @@ async function answerAll(page: Page, feedback: RegExp): Promise<void> {
 }
 
 test.describe('a student plays quizzes', () => {
-  test.use({ storageState: 'e2e/.auth/carla.json' })
+  // Its own token, so its requests do not share a rate-limit bucket with the
+  // other Carla specs (see e2e/global-setup.ts).
+  test.use({ storageState: 'e2e/.auth/carla-quiz.json' })
   test.describe.configure({ mode: 'serial' })
 
   test('answers a whole quiz online and sees the score', async ({ page }, testInfo) => {
@@ -94,6 +96,39 @@ test.describe('a student plays quizzes', () => {
     await expect(page.getByTestId('quiz-results-pending')).toHaveCount(0)
     await expect(page.getByTestId('quiz-pending-chip')).toHaveCount(0)
     await expect(page.getByTestId('quiz-score')).toHaveText(/^Você acertou \d+ de \d+$/)
+  })
+
+  test('opens a downloaded quiz from a cold start with no internet', async ({ page, context }, testInfo) => {
+    const name = TOPIC_BY_PROJECT[testInfo.project.name] ?? 'Tabela Periódica'
+    await page.goto(TOPICS)
+    await expect(page.getByTestId('topics-list')).toBeVisible()
+    const topicId = await topicIdNamed(page, name)
+
+    await page.getByTestId(`quiz-download-${topicId}`).click()
+    await expect(page.getByTestId(`quiz-downloaded-${topicId}`)).toBeVisible()
+    await page.getByTestId(`quiz-continue-${topicId}`).click()
+    await expect(page).toHaveURL(/\/quiz\//)
+    const quizUrl = page.url()
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready
+    })
+
+    // "Closing the app": the page goes away; only the service worker, its
+    // precache and IndexedDB remain. Then a fresh page, already offline.
+    await page.close()
+    await context.setOffline(true)
+    const reopened = await context.newPage()
+    await reopened.goto(quizUrl)
+
+    await reopened.getByTestId('quiz-option-0').click()
+    await reopened.getByTestId('quiz-submit').click()
+    await expect(reopened.getByTestId('quiz-feedback-pending')).toBeVisible()
+    await reopened.getByTestId('quiz-next').click()
+    await answerAll(reopened, /^quiz-feedback-pending$/)
+    await expect(reopened.getByTestId('quiz-results-pending')).toBeVisible()
+
+    await context.setOffline(false)
+    await expect(reopened.getByTestId('quiz-score')).toHaveText(/^Você acertou \d+ de \d+$/)
   })
 })
 

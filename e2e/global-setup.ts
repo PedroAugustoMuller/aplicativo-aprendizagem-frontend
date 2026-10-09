@@ -11,6 +11,10 @@ const API_URL = 'http://localhost:8080/api/v1'
 const LOGIN_URL = `${API_URL}/auth/login`
 const BRUNO_FILE = fileURLToPath(new URL('./.auth/bruno.json', import.meta.url))
 const CARLA_FILE = fileURLToPath(new URL('./.auth/carla.json', import.meta.url))
+// A second Carla session for e2e/quiz.spec.ts only: the API throttles 120
+// requests/minute per token, and the quiz tests alone (both projects, offline
+// sync included) come close to that on top of every other Carla spec.
+const CARLA_QUIZ_FILE = fileURLToPath(new URL('./.auth/carla-quiz.json', import.meta.url))
 const DIEGO_FILE = fileURLToPath(new URL('./.auth/diego.json', import.meta.url))
 // DevelopmentAccountsSeeder's fixed id for diego.souza.
 const DIEGO_ID = '0192f0a0-0000-7000-8000-000000000013'
@@ -127,6 +131,7 @@ export default async function globalSetup(): Promise<void> {
     // One login each, in their own throttle buckets (login+IP): Ana's budget is unchanged.
     await signIn(context, { login: 'bruno@escola.br', password: 'password' }, BRUNO_FILE)
     await signIn(context, { login: 'carla.dias', password: 'password' }, CARLA_FILE)
+    await signIn(context, { login: 'carla.dias', password: 'password' }, CARLA_QUIZ_FILE)
   } finally {
     await context.dispose()
   }
