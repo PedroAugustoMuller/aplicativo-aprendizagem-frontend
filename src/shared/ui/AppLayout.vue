@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useEventListener } from '@vueuse/core'
-import { mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
+import { mdiClipboardTextOutline, mdiLogout, mdiWeatherNight, mdiWeatherSunny } from '@mdi/js'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppTheme } from '@/shared/theme/useAppTheme'
@@ -18,6 +18,7 @@ import { useProgressStore } from '@/modules/quiz/application/progressStore'
 import PendingAnswersChip from '@/modules/quiz/presentation/PendingAnswersChip.vue'
 import { clearOfflineData } from '@/shared/offline/readThrough'
 import { navItemsFor } from '@/shared/ui/navigation'
+import { FEEDBACK_FORM_URL } from '@/shared/ui/feedbackForm'
 
 const { mobile } = useDisplay()
 const { t } = useI18n()
@@ -137,6 +138,15 @@ async function signOut(): Promise<void> {
       <v-app-bar-title>{{ t('app.name') }}</v-app-bar-title>
       <v-spacer />
       <PendingAnswersChip v-if="session.hasSession" />
+      <v-btn
+        v-if="showNav"
+        :icon="mdiClipboardTextOutline"
+        :aria-label="t('nav.feedback')"
+        :href="FEEDBACK_FORM_URL"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="feedback-form"
+      />
       <v-btn
         :icon="isDark ? mdiWeatherSunny : mdiWeatherNight"
         :aria-label="t('nav.theme')"

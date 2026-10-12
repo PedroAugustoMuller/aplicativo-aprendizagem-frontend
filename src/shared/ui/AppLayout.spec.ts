@@ -18,6 +18,7 @@ import { useQuizStore } from '@/modules/quiz/application/quizStore'
 import { useProgressStore } from '@/modules/quiz/application/progressStore'
 import { configureViewerId } from '@/shared/auth/viewer'
 import { ApiError } from '@/shared/api/error'
+import { FEEDBACK_FORM_URL } from '@/shared/ui/feedbackForm'
 
 // shared/ui may reach a module only through application/ and presentation/, so
 // the repository is mocked by path rather than imported.
@@ -173,6 +174,28 @@ describe('AppLayout', () => {
     expect(wrapper.find('.v-navigation-drawer').exists()).toBe(false)
     expect(wrapper.find('.v-bottom-navigation').exists()).toBe(false)
     expect(wrapper.find('[data-testid="sign-out"]').exists()).toBe(true)
+  })
+
+  it.each(['admin', 'teacher', 'student'] as const)('links a signed-in %s to the feedback form in a new tab', async (role) => {
+    useSessionStore().$patch({ token: 'tok', user: user(false, role) })
+
+    const wrapper = await render()
+    const link = wrapper.find('[data-testid="feedback-form"]')
+
+    expect(FEEDBACK_FORM_URL).toMatch(/^https:\/\/docs\.google\.com\/forms\//)
+    expect(link.attributes('href')).toBe(FEEDBACK_FORM_URL)
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toContain('noopener')
+    expect(link.attributes('aria-label')).toBe('Avaliar o app')
+  })
+
+  it('offers the feedback form to no one signed out or with a password change pending', async () => {
+    const signedOut = await render()
+    useSessionStore().$patch({ token: 'tok', user: user(true) })
+    const pending = await render()
+
+    expect(signedOut.find('[data-testid="feedback-form"]').exists()).toBe(false)
+    expect(pending.find('[data-testid="feedback-form"]').exists()).toBe(false)
   })
 
   it('forgets the previous user\'s content when the session ends', async () => {

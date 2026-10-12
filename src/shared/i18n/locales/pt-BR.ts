@@ -9,6 +9,7 @@ export default {
     teachers: 'Professores',
     signOut: 'Sair',
     theme: 'Tema',
+    feedback: 'Avaliar o app',
   },
   common: {
     retry: 'Tentar novamente',
