@@ -45,7 +45,7 @@ describe('HttpStudentRepository', () => {
 
   it('unenrols, resets and changes status through their endpoints', async () => {
     vi.mocked(identityRequests.unenrolStudent).mockResolvedValue({
-      id: 'c-1', name: 'Q', subject_id: 's', teacher_ids: [], student_count: 0, active: true,
+      id: 'c-1', name: 'Q', subject_ids: ['s'], teachers: [], student_count: 0, active: true,
     })
     vi.mocked(identityRequests.resetStudentPassword).mockResolvedValue(ISSUED)
     vi.mocked(identityRequests.deactivateStudent).mockResolvedValue(ISSUED)
@@ -84,7 +84,7 @@ describe('HttpStudentRepository', () => {
 
   it('enrols an existing student', async () => {
     vi.mocked(identityRequests.enrolStudent).mockResolvedValue({
-      id: 'c-2', name: 'Biologia 1', subject_id: 's', teacher_ids: [], student_count: 1, active: true,
+      id: 'c-2', name: 'Biologia 1', subject_ids: ['s'], teachers: [], student_count: 1, active: true,
     })
 
     await studentRepository.enrol('c-2', 's-1')

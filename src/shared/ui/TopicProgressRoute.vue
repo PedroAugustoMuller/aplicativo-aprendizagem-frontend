@@ -12,7 +12,7 @@ import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import { ApiError } from '@/shared/api/error'
 
 // Composition root: quiz shows the progress, content names the topic, identity knows the
-// classroom's subject. None of them imports another.
+// viewer's classrooms; the subject comes from the URL. None of them imports another.
 const { t } = useI18n()
 const route = useRoute()
 const topics = useTopicStore()
@@ -28,16 +28,16 @@ const param = (name: string): string => {
 const source = computed(() => sourceFromParams(route.params))
 const topicId = computed(() => param('topicId'))
 const classroomId = computed(() => param('classroomId'))
-const subjectId = computed(() => param('subjectId') || (classroomId.value === '' ? '' : (classrooms.find(classroomId.value)?.subjectId ?? '')))
+const subjectId = computed(() => param('subjectId'))
 const topicName = computed(() => topics.topics.find((topic) => topic.id === topicId.value)?.name ?? '')
 const studentName = computed(() => {
   const s = source.value
 
   return s.kind === 'student' ? (progress.classroom.find((student) => student.id === s.studentId)?.name ?? '') : undefined
 })
-// Staff pages need the classroom to know its subject: say why when it cannot be found.
+// Staff pages read a student of one of the viewer's classrooms: say why when it cannot be found.
 const classroomError = computed((): ApiError | null => {
-  if (classroomId.value === '' || subjectId.value !== '' || classrooms.loading) {
+  if (classroomId.value === '' || classrooms.loading || classrooms.find(classroomId.value) !== null) {
     return null
   }
 
@@ -48,7 +48,9 @@ const classroomError = computed((): ApiError | null => {
   // Loaded and not among the viewer's classrooms (a typed URL, a class they no longer teach).
   return new ApiError('quiz.classroom_not_found')
 })
-const backTo = computed(() => (classroomId.value === '' ? `/subjects/${subjectId.value}/topics` : `/classrooms/${classroomId.value}/progress`))
+const backTo = computed(() => (classroomId.value === ''
+  ? `/subjects/${subjectId.value}/topics`
+  : `/classrooms/${classroomId.value}/subjects/${subjectId.value}/progress`))
 
 watch(classroomId, async (id) => {
   if (id === '') {
@@ -60,7 +62,7 @@ watch(classroomId, async (id) => {
   }
 
   if (!progress.classroom.some((student) => source.value.kind === 'student' && student.id === source.value.studentId)) {
-    await progress.loadClassroom(id)
+    await progress.loadClassroom(id, subjectId.value)
   }
 }, { immediate: true })
 
@@ -89,7 +91,7 @@ watch(subjectId, (id) => {
       @retry="classrooms.load()"
     />
     <TopicProgressPage
-      v-else-if="subjectId !== ''"
+      v-else-if="subjectId !== '' && (classroomId === '' || classrooms.find(classroomId) !== null)"
       :topic-id="topicId"
       :subject-id="subjectId"
       :topic-name="topicName"

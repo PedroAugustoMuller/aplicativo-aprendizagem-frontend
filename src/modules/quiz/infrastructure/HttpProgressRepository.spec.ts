@@ -13,7 +13,7 @@ vi.mock('@/modules/quiz/infrastructure/client/requests', () => ({
   },
 }))
 
-const STAFF = { kind: 'student', classroomId: 'c-1', studentId: 'u-9' } as const
+const STAFF = { kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' } as const
 
 const HISTORY: TopicHistoryResponse = {
   points: 100, tier: 'bronze', next_tier: { tier: 'silver', points: 150 },
@@ -82,9 +82,10 @@ describe('progressRepository', () => {
   it('maps the classroom grid', async () => {
     vi.mocked(quizRequests.classroomProgress).mockResolvedValue({ students: [{ id: 'u-1', name: 'Carla', username: 'carla.dias', topics: [{ topic_id: 't-1', points: 60, tier: 'bronze' }] }] })
 
-    expect(await progressRepository.classroomProgress('c-1')).toEqual([
+    expect(await progressRepository.classroomProgress('c-1', 's-1')).toEqual([
       { id: 'u-1', name: 'Carla', username: 'carla.dias', topics: [{ topicId: 't-1', points: 60, tier: 'bronze' }] },
     ])
+    expect(quizRequests.classroomProgress).toHaveBeenCalledWith('c-1', 's-1')
   })
 
   it('reads an attempt through the quiz route or the staff route', async () => {

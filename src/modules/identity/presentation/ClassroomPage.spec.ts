@@ -18,7 +18,7 @@ const students = vi.hoisted(() => ({
   search: vi.fn(), enrol: vi.fn(),
 }))
 const classrooms = vi.hoisted(() => ({
-  list: vi.fn(), subjectOptions: vi.fn(), create: vi.fn(), update: vi.fn(), assignTeachers: vi.fn(), deactivate: vi.fn(),
+  list: vi.fn(), subjectOptions: vi.fn(), create: vi.fn(), rename: vi.fn(), replaceSubjects: vi.fn(), assignTeachers: vi.fn(), deactivate: vi.fn(),
 }))
 vi.mock('@/modules/identity/infrastructure/HttpStudentRepository', () => ({ studentRepository: students }))
 vi.mock('@/modules/identity/infrastructure/HttpClassroomRepository', () => ({ classroomRepository: classrooms }))
@@ -56,9 +56,12 @@ describe('ClassroomPage', () => {
       token: 'tok', user: { userId: 't-1', name: 'Bruno', login: 'b@escola.br', role: 'teacher', mustChangePassword: false },
     })
     classrooms.list.mockResolvedValue([
-      { id: 'c-1', name: 'Química 1', subjectId: 's-1', teacherIds: ['t-1'], studentCount: 1, active: true },
+      {
+        id: 'c-1', name: 'Química 1', subjectIds: ['q-1', 'b-1'], studentCount: 1, active: true,
+        assignments: [{ teacherId: 't-1', subjectId: 'q-1' }, { teacherId: 't-2', subjectId: null }],
+      },
     ])
-    classrooms.subjectOptions.mockResolvedValue([{ id: 's-1', name: 'Química', active: true }])
+    classrooms.subjectOptions.mockResolvedValue([{ id: 'q-1', name: 'Química', active: true }, { id: 'b-1', name: 'Biologia', active: true }])
     students.listByClassroom.mockResolvedValue([ANA])
   })
 
@@ -68,8 +71,21 @@ describe('ClassroomPage', () => {
     expect(wrapper.find('[data-testid="classroom-title"]').text()).toBe('Química 1')
     expect(wrapper.find('[data-testid="roster-student-s-1"]').text()).toContain('ana.lima')
     expect(wrapper.find('[data-testid="roster-print"]').attributes('href')).toBe('/classrooms/c-1/credentials')
-    expect(wrapper.find('[data-testid="classroom-progress"]').attributes('href')).toBe('/classrooms/c-1/progress')
+    expect(wrapper.find('[data-testid="classroom-subjects-line"]').text()).toBe('Química · Biologia')
+    // Bruno teaches only Química there: straight to that grid.
+    expect(wrapper.find('[data-testid="classroom-progress"]').attributes('href')).toBe('/classrooms/c-1/subjects/q-1/progress')
     expect(wrapper.find('[data-testid="classroom-progress"]').text()).toBe('Desempenho')
+  })
+
+  it('offers a whole-class teacher a menu with every subject', async () => {
+    useSessionStore().$patch({
+      user: { userId: 't-2', name: 'Clara', login: 'c@escola.br', role: 'teacher', mustChangePassword: false },
+    })
+    const { wrapper } = await render()
+
+    expect(wrapper.find('[data-testid="classroom-progress"]').attributes('href')).toBeUndefined()
+    expect(wrapper.find('[data-testid="classroom-progress-q-1"]').attributes('href')).toBe('/classrooms/c-1/subjects/q-1/progress')
+    expect(wrapper.find('[data-testid="classroom-progress-b-1"]').attributes('href')).toBe('/classrooms/c-1/subjects/b-1/progress')
   })
 
   it('previews a pasted list and blocks what the backend would refuse', async () => {

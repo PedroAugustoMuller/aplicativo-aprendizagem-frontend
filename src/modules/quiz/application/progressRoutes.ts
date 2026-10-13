@@ -7,12 +7,13 @@ const param = (params: RouteParamsGeneric, name: string): string => {
   return typeof value === 'string' ? value : ''
 }
 
-/** Staff routes carry the classroom and the student; every other progress route is the viewer's own. */
+/** Staff routes carry the classroom, the subject and the student; every other progress route is the viewer's own. */
 export function sourceFromParams(params: RouteParamsGeneric): ProgressSource {
   const classroomId = param(params, 'classroomId')
+  const subjectId = param(params, 'subjectId')
   const studentId = param(params, 'studentId')
 
-  return classroomId !== '' && studentId !== '' ? { kind: 'student', classroomId, studentId } : OWN
+  return classroomId !== '' && subjectId !== '' && studentId !== '' ? { kind: 'student', classroomId, subjectId, studentId } : OWN
 }
 
 export interface ProgressLinks {
@@ -30,7 +31,7 @@ export function progressLinks(source: ProgressSource, subjectId: string, topicId
     }
   }
 
-  const base = `/classrooms/${source.classroomId}/students/${source.studentId}`
+  const base = `/classrooms/${source.classroomId}/subjects/${source.subjectId}/students/${source.studentId}`
 
   return {
     progress: `${base}/topics/${topicId}/progress`,

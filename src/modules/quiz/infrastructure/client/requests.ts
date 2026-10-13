@@ -12,8 +12,8 @@ export const quizRequests = {
   subjectProgress: (subjectId: string) => api.get<TopicProgressResponse[]>({ url: quizRoutes.subjectProgress, urlParams: { subjectId } }),
   topicHistory: (topicId: string) => api.get<TopicHistoryResponse>({ url: quizRoutes.topicHistory, urlParams: { topicId } }),
   wrongQuestions: (topicId: string) => api.get<WrongQuestionResponse[]>({ url: quizRoutes.wrongQuestions, urlParams: { topicId } }),
-  classroomProgress: (classroomId: string) =>
-    api.get<ClassroomProgressResponse>({ url: quizRoutes.classroomProgress, urlParams: { classroomId } }),
+  classroomProgress: (classroomId: string, subjectId: string) =>
+    api.get<ClassroomProgressResponse>({ url: quizRoutes.classroomProgress, urlParams: { classroomId, subjectId } }),
   studentTopicHistory: (classroomId: string, studentId: string, topicId: string) =>
     api.get<TopicHistoryResponse>({ url: quizRoutes.studentTopicHistory, urlParams: { classroomId, studentId, topicId } }),
   studentWrongQuestions: (classroomId: string, studentId: string, topicId: string) =>

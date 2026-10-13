@@ -43,13 +43,13 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
-      path: '/classrooms/:classroomId/progress',
+      path: '/classrooms/:classroomId/subjects/:subjectId/progress',
       name: 'classroom-progress',
       component: () => import('@/shared/ui/ClassroomProgressRoute.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
-      path: '/classrooms/:classroomId/topics/:topicId/questions',
+      path: '/classrooms/:classroomId/subjects/:subjectId/topics/:topicId/questions',
       name: 'classroom-question-summary',
       component: () => import('@/shared/ui/QuestionSummaryRoute.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
@@ -91,7 +91,7 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['student'] },
     },
     {
-      path: '/classrooms/:classroomId/students/:studentId/topics/:topicId/progress',
+      path: '/classrooms/:classroomId/subjects/:subjectId/students/:studentId/topics/:topicId/progress',
       name: 'student-topic-progress',
       component: () => import('@/shared/ui/TopicProgressRoute.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
@@ -103,13 +103,13 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['student'] },
     },
     {
-      path: '/classrooms/:classroomId/students/:studentId/quiz/:attemptId/review',
+      path: '/classrooms/:classroomId/subjects/:subjectId/students/:studentId/quiz/:attemptId/review',
       name: 'student-quiz-review',
       component: () => import('@/modules/quiz/presentation/AttemptReviewPage.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
-      path: '/classrooms/:classroomId/students/:studentId/topics/:topicId/review',
+      path: '/classrooms/:classroomId/subjects/:subjectId/students/:studentId/topics/:topicId/review',
       name: 'student-wrong-questions',
       component: () => import('@/modules/quiz/presentation/WrongQuestionsPage.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },

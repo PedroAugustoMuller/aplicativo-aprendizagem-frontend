@@ -8,12 +8,15 @@ vi.mock('@/modules/identity/infrastructure/client/requests', () => ({
     listSubjectOptions: vi.fn(),
     createClassroom: vi.fn(),
     updateClassroom: vi.fn(),
+    replaceClassroomSubjects: vi.fn(),
     assignClassroomTeachers: vi.fn(),
     deactivateClassroom: vi.fn(),
   },
 }))
 
-const RESPONSE = { id: 'c-1', name: 'Química 1', subject_id: 's-1', teacher_ids: ['t-1'], student_count: 2, active: true }
+const RESPONSE = {
+  id: 'c-1', name: 'Química 1', subject_ids: ['s-1'], teachers: [{ teacher_id: 't-1', subject_id: null }], student_count: 2, active: true,
+}
 
 describe('HttpClassroomRepository', () => {
   beforeEach(() => vi.resetAllMocks())
@@ -28,7 +31,7 @@ describe('HttpClassroomRepository', () => {
 
     expect(classrooms.map((classroom) => classroom.id)).toEqual(['c-1', 'c-2'])
     expect(classrooms[0]).toEqual({
-      id: 'c-1', name: 'Química 1', subjectId: 's-1', teacherIds: ['t-1'], studentCount: 2, active: true,
+      id: 'c-1', name: 'Química 1', subjectIds: ['s-1'], assignments: [{ teacherId: 't-1', subjectId: null }], studentCount: 2, active: true,
     })
   })
 
@@ -41,17 +44,23 @@ describe('HttpClassroomRepository', () => {
   it('sends writes in the backend\'s field names', async () => {
     vi.mocked(identityRequests.createClassroom).mockResolvedValue(RESPONSE)
     vi.mocked(identityRequests.updateClassroom).mockResolvedValue(RESPONSE)
+    vi.mocked(identityRequests.replaceClassroomSubjects).mockResolvedValue(RESPONSE)
     vi.mocked(identityRequests.assignClassroomTeachers).mockResolvedValue(RESPONSE)
     vi.mocked(identityRequests.deactivateClassroom).mockResolvedValue(RESPONSE)
 
-    await classroomRepository.create('c-1', { name: 'Química 1', subjectId: 's-1' })
-    await classroomRepository.update('c-1', { name: 'Química A', subjectId: 's-1' })
-    await classroomRepository.assignTeachers('c-1', ['t-1', 't-2'])
+    await classroomRepository.create('c-1', { name: 'Química 1', subjectIds: ['s-1'] })
+    await classroomRepository.rename('c-1', 'Química A')
+    await classroomRepository.replaceSubjects('c-1', ['s-1', 's-2'])
+    await classroomRepository.assignTeachers('c-1', [{ teacherId: 't-1', subjectId: null }, { teacherId: 't-2', subjectId: 's-1' }])
     await classroomRepository.deactivate('c-1')
 
-    expect(identityRequests.createClassroom).toHaveBeenCalledWith({ id: 'c-1', name: 'Química 1', subject_id: 's-1' })
-    expect(identityRequests.updateClassroom).toHaveBeenCalledWith('c-1', { name: 'Química A', subject_id: 's-1' })
-    expect(identityRequests.assignClassroomTeachers).toHaveBeenCalledWith('c-1', ['t-1', 't-2'])
+    expect(identityRequests.createClassroom).toHaveBeenCalledWith({ id: 'c-1', name: 'Química 1', subject_ids: ['s-1'] })
+    expect(identityRequests.updateClassroom).toHaveBeenCalledWith('c-1', { name: 'Química A' })
+    expect(identityRequests.replaceClassroomSubjects).toHaveBeenCalledWith('c-1', ['s-1', 's-2'])
+    expect(identityRequests.assignClassroomTeachers).toHaveBeenCalledWith('c-1', [
+      { teacher_id: 't-1', subject_id: null },
+      { teacher_id: 't-2', subject_id: 's-1' },
+    ])
     expect(identityRequests.deactivateClassroom).toHaveBeenCalledWith('c-1')
   })
 })

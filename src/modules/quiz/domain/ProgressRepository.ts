@@ -7,6 +7,6 @@ export interface ProgressRepository {
   topicHistory(source: ProgressSource, topicId: string): Promise<TopicHistory>
   wrongQuestions(source: ProgressSource, topicId: string): Promise<WrongQuestion[]>
   attempt(source: ProgressSource, attemptId: string): Promise<Attempt>
-  classroomProgress(classroomId: string): Promise<StudentProgress[]>
+  classroomProgress(classroomId: string, subjectId: string): Promise<StudentProgress[]>
   questionSummary(scope: SummaryScope, topicId: string): Promise<QuestionSummary>
 }

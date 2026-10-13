@@ -175,11 +175,12 @@ export const useProgressStore = defineStore('progress', () => {
     }
   }
 
-  async function loadClassroom(classroomId: string): Promise<void> {
+  async function loadClassroom(classroomId: string, subjectId: string): Promise<void> {
     const request = ++latestClassroom
+    const key = `${classroomId}:${subjectId}`
 
-    if (classroomKey !== classroomId) {
-      classroomKey = classroomId
+    if (classroomKey !== key) {
+      classroomKey = key
       classroom.value = []
       classroomSavedAt.value = null
     }
@@ -188,7 +189,7 @@ export const useProgressStore = defineStore('progress', () => {
     classroomError.value = null
 
     try {
-      const snapshot = await readThrough(`quiz:progress:classroom:${classroomId}`, () => progressRepository.classroomProgress(classroomId))
+      const snapshot = await readThrough(`quiz:progress:classroom:${key}`, () => progressRepository.classroomProgress(classroomId, subjectId))
 
       if (request === latestClassroom) {
         classroom.value = snapshot.value

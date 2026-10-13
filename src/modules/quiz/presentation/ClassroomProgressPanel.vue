@@ -8,7 +8,13 @@ import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
 import TierBadge from '@/modules/quiz/presentation/TierBadge.vue'
 
-const props = defineProps<{ classroomId: string; classroomName: string; topics: readonly { id: string; name: string }[] }>()
+const props = defineProps<{
+  classroomId: string
+  subjectId: string
+  classroomName: string
+  subjectName: string
+  topics: readonly { id: string; name: string }[]
+}>()
 const { t } = useI18n()
 const { mdAndUp } = useDisplay()
 const store = useProgressStore()
@@ -16,13 +22,14 @@ const store = useProgressStore()
 // A topic without answers has no entry: it is iron at 0.
 const cellOf = (student: StudentProgress, topicId: string): StudentTopicTier =>
   student.topics.find((topic) => topic.topicId === topicId) ?? { topicId, points: 0, tier: 'iron' }
-const linkOf = (studentId: string, topicId: string): string => `/classrooms/${props.classroomId}/students/${studentId}/topics/${topicId}/progress`
-const summaryLinkOf = (topicId: string): string => `/classrooms/${props.classroomId}/topics/${topicId}/questions`
+const base = computed(() => `/classrooms/${props.classroomId}/subjects/${props.subjectId}`)
+const linkOf = (studentId: string, topicId: string): string => `${base.value}/students/${studentId}/topics/${topicId}/progress`
+const summaryLinkOf = (topicId: string): string => `${base.value}/topics/${topicId}/questions`
 const empty = computed(() => !store.classroomLoading && store.classroomError === null && store.classroom.length === 0)
 
-const load = (): Promise<void> => store.loadClassroom(props.classroomId)
+const load = (): Promise<void> => store.loadClassroom(props.classroomId, props.subjectId)
 
-watch(() => props.classroomId, load, { immediate: true })
+watch(() => [props.classroomId, props.subjectId], load, { immediate: true })
 </script>
 
 <template>
@@ -31,7 +38,7 @@ watch(() => props.classroomId, load, { immediate: true })
       {{ t('progress.classroomTitle') }}
     </h1>
     <p class="text-medium-emphasis mb-4">
-      {{ classroomName }}
+      {{ subjectName === '' ? classroomName : `${classroomName} · ${subjectName}` }}
     </p>
     <OfflineBanner :saved-at="store.classroomSavedAt" />
     <v-progress-linear

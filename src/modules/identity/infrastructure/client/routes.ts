@@ -10,6 +10,7 @@ export const identityRoutes = {
   classrooms: '/classrooms',
   classroom: '/classrooms/:classroomId',
   classroomTeachers: '/classrooms/:classroomId/teachers',
+  classroomSubjects: '/classrooms/:classroomId/subjects',
   classroomDeactivate: '/classrooms/:classroomId/deactivate',
   subjectOptions: '/subjects',
   classroomStudents: '/classrooms/:classroomId/students',

@@ -81,8 +81,8 @@ export const progressRepository: ProgressRepository = {
       : await quizRequests.studentAttempt(source.classroomId, source.studentId, attemptId))
   },
 
-  async classroomProgress(classroomId) {
-    return (await quizRequests.classroomProgress(classroomId)).students.map((s) => ({
+  async classroomProgress(classroomId, subjectId) {
+    return (await quizRequests.classroomProgress(classroomId, subjectId)).students.map((s) => ({
       id: s.id,
       name: s.name,
       username: s.username,

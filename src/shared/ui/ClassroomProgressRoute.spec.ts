@@ -31,22 +31,23 @@ describe('ClassroomProgressRoute', () => {
     vi.resetAllMocks()
   })
 
-  it('takes the subject from the classroom and the active topic names from content', async () => {
-    classroomsApi.list.mockResolvedValue([{ id: 'c-1', name: '9º A', subjectId: 's-1', teacherIds: [], studentCount: 1, active: true }])
-    classroomsApi.subjectOptions.mockResolvedValue([])
+  it('takes the subject from the URL and the active topic names from content', async () => {
+    classroomsApi.list.mockResolvedValue([{ id: 'c-1', name: '9º A', subjectIds: ['s-1', 's-2'], assignments: [], studentCount: 1, active: true }])
+    classroomsApi.subjectOptions.mockResolvedValue([{ id: 's-1', name: 'Química', active: true }])
     topicsApi.listBySubject.mockResolvedValue([
       { id: 't-1', name: 'Átomos', description: '', position: 0, active: true, questionCount: 3 },
       { id: 't-2', name: 'Antigo', description: '', position: 1, active: false, questionCount: 0 },
     ])
     progressApi.classroomProgress.mockResolvedValue([{ id: 'u-1', name: 'Carla', username: 'carla.dias', topics: [] }])
-    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/classrooms/:classroomId/progress', component: ClassroomProgressRoute }, { path: '/:any(.*)*', component: { render: () => null } }] })
-    await router.push('/classrooms/c-1/progress')
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/classrooms/:classroomId/subjects/:subjectId/progress', component: ClassroomProgressRoute }, { path: '/:any(.*)*', component: { render: () => null } }] })
+    await router.push('/classrooms/c-1/subjects/s-1/progress')
 
     const wrapper = mount({ render: () => h(RouterView) }, { global: { plugins: [vuetify, i18n, router] } })
     await flushPromises()
 
     expect(wrapper.text()).toContain('Desempenho da turma')
-    expect(wrapper.text()).toContain('9º A')
+    expect(wrapper.text()).toContain('9º A · Química')
+    expect(progressApi.classroomProgress).toHaveBeenCalledWith('c-1', 's-1')
     expect(topicsApi.listBySubject).toHaveBeenCalledWith('s-1')
     expect(wrapper.find('[data-testid="classroom-progress-cell-u-1-t-1"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="classroom-progress-cell-u-1-t-2"]').exists()).toBe(false)

@@ -81,13 +81,13 @@ describe('TopicProgressPage', () => {
   })
 
   it('is read-only for staff: the student name, staff links, no link on an open quiz', async () => {
-    const wrapper = await render({ source: { kind: 'student', classroomId: 'c-1', studentId: 'u-9' }, studentName: 'Carla Dias' })
+    const wrapper = await render({ source: { kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' }, studentName: 'Carla Dias' })
 
     expect(wrapper.text()).toContain('Desempenho de Carla Dias')
     expect(wrapper.get('[data-testid="progress-attempt-0"]').attributes('href')).toBeUndefined()
-    expect(wrapper.get('[data-testid="progress-attempt-1"]').attributes('href')).toBe('/classrooms/c-1/students/u-9/quiz/a-2/review')
-    expect(wrapper.get('[data-testid="progress-review-wrong"]').attributes('href')).toBe('/classrooms/c-1/students/u-9/topics/t-1/review')
-    expect(repo.topicHistory).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', studentId: 'u-9' }, 't-1')
+    expect(wrapper.get('[data-testid="progress-attempt-1"]').attributes('href')).toBe('/classrooms/c-1/subjects/s-1/students/u-9/quiz/a-2/review')
+    expect(wrapper.get('[data-testid="progress-review-wrong"]').attributes('href')).toBe('/classrooms/c-1/subjects/s-1/students/u-9/topics/t-1/review')
+    expect(repo.topicHistory).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' }, 't-1')
   })
 
   it('warns that pending answers will still change the points, and reloads once they are sent', async () => {
@@ -106,7 +106,7 @@ describe('TopicProgressPage', () => {
 
   it('never shows staff the pending notice', async () => {
     useQuizStore().pendingCount = 2
-    const wrapper = await render({ source: { kind: 'student', classroomId: 'c-1', studentId: 'u-9' }, studentName: 'Carla Dias' })
+    const wrapper = await render({ source: { kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' }, studentName: 'Carla Dias' })
 
     expect(wrapper.find('[data-testid="progress-pending"]').exists()).toBe(false)
   })

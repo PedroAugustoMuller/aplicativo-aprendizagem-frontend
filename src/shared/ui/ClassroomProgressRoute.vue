@@ -7,14 +7,16 @@ import { useClassroomStore } from '@/modules/identity/application/classroomStore
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import ClassroomProgressPanel from '@/modules/quiz/presentation/ClassroomProgressPanel.vue'
 
-// Composition root: identity knows the classroom and its subject, content names the
-// topics, quiz shows the grid. None of them imports another.
+// Composition root: the URL carries the subject, identity names the classroom and the
+// subject, content names the topics, quiz shows the grid. None of them imports another.
 const { t } = useI18n()
 const route = useRoute()
 const classrooms = useClassroomStore()
 const topics = useTopicStore()
 const classroomId = computed(() => (typeof route.params.classroomId === 'string' ? route.params.classroomId : ''))
+const subjectId = computed(() => (typeof route.params.subjectId === 'string' ? route.params.subjectId : ''))
 const classroom = computed(() => (classroomId.value === '' ? null : classrooms.find(classroomId.value)))
+const subjectName = computed(() => classrooms.subjectName(subjectId.value) ?? '')
 // Like the students' topic list: deactivated topics are not part of the grid.
 const columns = computed(() => topics.topics.filter((topic) => topic.active).map((topic) => ({ id: topic.id, name: topic.name })))
 
@@ -24,9 +26,9 @@ watch(classroomId, async (id) => {
   }
 }, { immediate: true })
 
-watch(() => classroom.value?.subjectId, (subjectId) => {
-  if (subjectId !== undefined && topics.subjectId !== subjectId) {
-    void topics.load(subjectId)
+watch(subjectId, (id) => {
+  if (id !== '' && topics.subjectId !== id) {
+    void topics.load(id)
   }
 }, { immediate: true })
 </script>
@@ -43,9 +45,11 @@ watch(() => classroom.value?.subjectId, (subjectId) => {
       {{ t('progress.back') }}
     </v-btn>
     <ClassroomProgressPanel
-      v-if="classroomId !== ''"
+      v-if="classroomId !== '' && subjectId !== ''"
       :classroom-id="classroomId"
+      :subject-id="subjectId"
       :classroom-name="classroom?.name ?? ''"
+      :subject-name="subjectName"
       :topics="columns"
     />
   </div>

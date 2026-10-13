@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { classroomRepository } from '@/modules/identity/infrastructure/HttpClassroomRepository'
 import { readThrough } from '@/shared/offline/readThrough'
 import { ApiError } from '@/shared/api/error'
-import type { Classroom, ClassroomInput, SubjectOption } from '@/modules/identity/domain/Classroom'
+import type { Classroom, ClassroomInput, SubjectOption, TeacherAssignment } from '@/modules/identity/domain/Classroom'
 
 const older = (a: Date | null, b: Date | null): Date | null => {
   if (a === null) {
@@ -29,7 +29,8 @@ export const useClassroomStore = defineStore('classrooms', () => {
 
     try {
       const [classroomSnapshot, subjectSnapshot] = await Promise.all([
-        readThrough('identity:classrooms', () => classroomRepository.list()),
+        // v2: classrooms hold several subjects; an old snapshot has another shape.
+        readThrough('identity:classrooms:v2', () => classroomRepository.list()),
         readThrough('identity:subject-options', () => classroomRepository.subjectOptions()),
       ])
 
@@ -69,13 +70,18 @@ export const useClassroomStore = defineStore('classrooms', () => {
     await load()
   }
 
-  async function update(id: string, input: ClassroomInput): Promise<void> {
-    await classroomRepository.update(id, input)
+  async function rename(id: string, name: string): Promise<void> {
+    await classroomRepository.rename(id, name)
     await load()
   }
 
-  async function assignTeachers(id: string, teacherIds: readonly string[]): Promise<void> {
-    await classroomRepository.assignTeachers(id, teacherIds)
+  async function replaceSubjects(id: string, subjectIds: readonly string[]): Promise<void> {
+    await classroomRepository.replaceSubjects(id, subjectIds)
+    await load()
+  }
+
+  async function assignTeachers(id: string, assignments: readonly TeacherAssignment[]): Promise<void> {
+    await classroomRepository.assignTeachers(id, assignments)
     await load()
   }
 
@@ -96,6 +102,6 @@ export const useClassroomStore = defineStore('classrooms', () => {
 
   return {
     classrooms, subjects, savedAt, loading, error,
-    load, ensureLoaded, find, subjectName, create, update, assignTeachers, deactivate, reset,
+    load, ensureLoaded, find, subjectName, create, rename, replaceSubjects, assignTeachers, deactivate, reset,
   }
 })

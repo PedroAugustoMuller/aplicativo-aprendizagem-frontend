@@ -6,6 +6,8 @@ import { useOnline } from '@vueuse/core'
 import { mdiChartBar, mdiAccountCheck, mdiAccountOff, mdiAccountPlus, mdiArrowLeft, mdiLockReset, mdiPrinter, mdiAccountRemove, mdiAccountSearch } from '@mdi/js'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useRosterStore } from '@/modules/identity/application/rosterStore'
+import { useSessionStore } from '@/modules/identity/application/sessionStore'
+import { subjectsTaughtBy } from '@/modules/identity/domain/assignments'
 import AddStudentsDialog from '@/modules/identity/presentation/AddStudentsDialog.vue'
 import StudentSearchDialog from '@/modules/identity/presentation/StudentSearchDialog.vue'
 import TemporaryPasswordDialog from '@/modules/identity/presentation/TemporaryPasswordDialog.vue'
@@ -23,6 +25,7 @@ const route = useRoute()
 const router = useRouter()
 const classrooms = useClassroomStore()
 const roster = useRosterStore()
+const session = useSessionStore()
 const online = useOnline()
 
 const classroomId = computed(() => {
@@ -31,6 +34,22 @@ const classroomId = computed(() => {
   return typeof param === 'string' ? param : ''
 })
 const classroom = computed(() => classrooms.find(classroomId.value))
+const subjectsLine = computed(() =>
+  classroom.value === null
+    ? ''
+    : classroom.value.subjectIds.map((id) => classrooms.subjectName(id) ?? '…').join(' · ') || t('classrooms.noSubjects'),
+)
+// The admin reads every subject; a teacher the ones their assignments cover.
+const progressSubjects = computed((): readonly string[] => {
+  if (classroom.value === null) {
+    return []
+  }
+
+  return session.knownUser?.role === 'admin'
+    ? classroom.value.subjectIds
+    : subjectsTaughtBy(classroom.value, session.knownUser?.userId ?? '')
+})
+const progressLink = (subjectId: string): string => `/classrooms/${classroomId.value}/subjects/${subjectId}/progress`
 
 const adding = ref(false)
 const searching = ref(false)
@@ -116,8 +135,11 @@ const openSlips = (): Promise<void> => router.push(`/classrooms/${classroomId.va
     >
       {{ classroom?.name ?? '' }}
     </h1>
-    <p class="text-medium-emphasis mb-4">
-      {{ classroom === null ? '' : (classrooms.subjectName(classroom.subjectId) ?? '') }}
+    <p
+      class="text-medium-emphasis mb-4"
+      data-testid="classroom-subjects-line"
+    >
+      {{ subjectsLine }}
     </p>
 
     <div class="d-flex flex-wrap ga-2 mb-4">
@@ -149,15 +171,37 @@ const openSlips = (): Promise<void> => router.push(`/classrooms/${classroomId.va
       >
         {{ t('roster.print') }}
       </v-btn>
-      <!-- A link by path: the progress grid belongs to the quiz module, which identity never imports. -->
+      <!-- Links by path: the progress grid belongs to the quiz module, which identity never imports. -->
       <v-btn
+        v-if="progressSubjects.length === 1"
         variant="tonal"
         :prepend-icon="mdiChartBar"
-        :to="`/classrooms/${classroomId}/progress`"
+        :to="progressLink(progressSubjects[0] ?? '')"
         data-testid="classroom-progress"
       >
         {{ t('progress.classroomButton') }}
       </v-btn>
+      <v-menu v-else-if="progressSubjects.length > 1">
+        <template #activator="{ props: menu }">
+          <v-btn
+            v-bind="menu"
+            variant="tonal"
+            :prepend-icon="mdiChartBar"
+            data-testid="classroom-progress"
+          >
+            {{ t('progress.classroomButton') }}
+          </v-btn>
+        </template>
+        <v-list :aria-label="t('progress.classroomMenu')">
+          <v-list-item
+            v-for="subjectId in progressSubjects"
+            :key="subjectId"
+            :to="progressLink(subjectId)"
+            :title="classrooms.subjectName(subjectId) ?? '…'"
+            :data-testid="`classroom-progress-${subjectId}`"
+          />
+        </v-list>
+      </v-menu>
     </div>
 
     <OfflineBanner :saved-at="roster.savedAt" />

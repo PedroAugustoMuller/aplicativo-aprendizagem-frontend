@@ -44,18 +44,17 @@ export const identityRequests = {
 
   listSubjectOptions: () => api.get<SubjectOptionResponse[]>({ url: identityRoutes.subjectOptions }),
 
-  createClassroom: (data: { id: string; name: string; subject_id: string }) =>
+  createClassroom: (data: { id: string; name: string; subject_ids: readonly string[] }) =>
     api.post<ClassroomResponse>({ url: identityRoutes.classrooms, data }),
 
-  updateClassroom: (classroomId: string, data: { name: string; subject_id: string }) =>
+  updateClassroom: (classroomId: string, data: { name: string }) =>
     api.patch<ClassroomResponse>({ url: identityRoutes.classroom, urlParams: { classroomId }, data }),
 
-  assignClassroomTeachers: (classroomId: string, teacherIds: readonly string[]) =>
-    api.put<ClassroomResponse>({
-      url: identityRoutes.classroomTeachers,
-      urlParams: { classroomId },
-      data: { teacher_ids: teacherIds },
-    }),
+  replaceClassroomSubjects: (classroomId: string, subjectIds: readonly string[]) =>
+    api.put<ClassroomResponse>({ url: identityRoutes.classroomSubjects, urlParams: { classroomId }, data: { subject_ids: subjectIds } }),
+
+  assignClassroomTeachers: (classroomId: string, assignments: readonly { teacher_id: string; subject_id: string | null }[]) =>
+    api.put<ClassroomResponse>({ url: identityRoutes.classroomTeachers, urlParams: { classroomId }, data: { assignments } }),
 
   deactivateClassroom: (classroomId: string) =>
     api.post<ClassroomResponse>({ url: identityRoutes.classroomDeactivate, urlParams: { classroomId } }),

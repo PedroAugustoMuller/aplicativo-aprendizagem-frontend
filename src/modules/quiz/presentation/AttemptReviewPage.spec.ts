@@ -37,7 +37,7 @@ const ATTEMPT: Attempt = {
 
 const ROUTES = [
   { path: '/quiz/:attemptId/review', component: AttemptReviewPage },
-  { path: '/classrooms/:classroomId/students/:studentId/quiz/:attemptId/review', component: AttemptReviewPage },
+  { path: '/classrooms/:classroomId/subjects/:subjectId/students/:studentId/quiz/:attemptId/review', component: AttemptReviewPage },
 ]
 
 describe('AttemptReviewPage', () => {
@@ -62,9 +62,9 @@ describe('AttemptReviewPage', () => {
   })
 
   it('reads a classroom student attempt for staff', async () => {
-    const { wrapper } = await renderAt('/classrooms/c-1/students/u-9/quiz/a-1/review', ROUTES)
+    const { wrapper } = await renderAt('/classrooms/c-1/subjects/s-1/students/u-9/quiz/a-1/review', ROUTES)
 
-    expect(repo.attempt).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', studentId: 'u-9' }, 'a-1')
+    expect(repo.attempt).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' }, 'a-1')
     await wrapper.get('[data-testid="quiz-result-0"] .v-expansion-panel-title').trigger('click')
     await flushPromises()
     expect(wrapper.get('[data-testid="quiz-result-0"]').text()).toContain('Resposta do aluno: S')

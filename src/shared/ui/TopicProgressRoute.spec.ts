@@ -29,7 +29,7 @@ async function renderAt(path: string) {
     history: createMemoryHistory(),
     routes: [
       { path: '/subjects/:subjectId/topics/:topicId/progress', component: TopicProgressRoute },
-      { path: '/classrooms/:classroomId/students/:studentId/topics/:topicId/progress', component: TopicProgressRoute },
+      { path: '/classrooms/:classroomId/subjects/:subjectId/students/:studentId/topics/:topicId/progress', component: TopicProgressRoute },
       { path: '/:any(.*)*', component: { render: () => null } },
     ],
   })
@@ -61,17 +61,19 @@ describe('TopicProgressRoute', () => {
     expect(wrapper.get('[data-testid="progress-back"]').attributes('href')).toBe('/subjects/s-1/topics')
   })
 
-  it('finds the subject through the classroom and the student name through the grid for staff', async () => {
+  it('takes the subject from the URL and the student name from the grid for staff', async () => {
     configureViewer(() => 'teacher')
-    classroomsApi.list.mockResolvedValue([{ id: 'c-1', name: '9º A', subjectId: 's-1', teacherIds: [], studentCount: 1, active: true }])
+    classroomsApi.list.mockResolvedValue([{ id: 'c-1', name: '9º A', subjectIds: ['s-1', 's-2'], assignments: [], studentCount: 1, active: true }])
     classroomsApi.subjectOptions.mockResolvedValue([])
     progressApi.classroomProgress.mockResolvedValue([{ id: 'u-1', name: 'Carla', username: 'carla.dias', topics: [] }])
-    const wrapper = await renderAt('/classrooms/c-1/students/u-1/topics/t-1/progress')
+    const wrapper = await renderAt('/classrooms/c-1/subjects/s-1/students/u-1/topics/t-1/progress')
 
     expect(wrapper.text()).toContain('Desempenho de Carla')
     expect(wrapper.get('[data-testid="progress-title"]').text()).toBe('Átomos')
-    expect(progressApi.topicHistory).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', studentId: 'u-1' }, 't-1')
-    expect(wrapper.get('[data-testid="progress-back"]').attributes('href')).toBe('/classrooms/c-1/progress')
+    expect(progressApi.topicHistory).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-1' }, 't-1')
+    expect(wrapper.get('[data-testid="progress-back"]').attributes('href')).toBe('/classrooms/c-1/subjects/s-1/progress')
+    expect(topicsApi.listBySubject).toHaveBeenCalledWith('s-1')
+    expect(progressApi.classroomProgress).toHaveBeenCalledWith('c-1', 's-1')
   })
 
   it('explains instead of going blank when the classroom is not one of the teacher classrooms', async () => {
@@ -79,7 +81,7 @@ describe('TopicProgressRoute', () => {
     classroomsApi.list.mockResolvedValue([])
     classroomsApi.subjectOptions.mockResolvedValue([])
     progressApi.classroomProgress.mockResolvedValue([])
-    const wrapper = await renderAt('/classrooms/c-9/students/u-1/topics/t-1/progress')
+    const wrapper = await renderAt('/classrooms/c-9/subjects/s-1/students/u-1/topics/t-1/progress')
 
     expect(wrapper.get('[data-testid="progress-classroom-error"]').text()).toContain('Não encontramos esta turma.')
   })
@@ -89,7 +91,7 @@ describe('TopicProgressRoute', () => {
     classroomsApi.list.mockRejectedValue(new ApiError('api.network_unavailable'))
     classroomsApi.subjectOptions.mockRejectedValue(new ApiError('api.network_unavailable'))
     progressApi.classroomProgress.mockResolvedValue([])
-    const wrapper = await renderAt('/classrooms/c-1/students/u-1/topics/t-1/progress')
+    const wrapper = await renderAt('/classrooms/c-1/subjects/s-1/students/u-1/topics/t-1/progress')
 
     expect(wrapper.find('[data-testid="progress-classroom-error"]').exists()).toBe(true)
   })

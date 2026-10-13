@@ -16,7 +16,7 @@ const vault = vi.hoisted(() => ({ celebrated: vi.fn(), markCelebrated: vi.fn() }
 vi.mock('@/modules/quiz/infrastructure/persistence/quizVault', () => ({ quizVault: vault }))
 
 const offline = () => Promise.reject(new ApiError('api.network_unavailable'))
-const STAFF = { kind: 'student', classroomId: 'c-1', studentId: 'u-9' } as const
+const STAFF = { kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' } as const
 
 const LEVELED: TopicHistory = {
   points: 60, tier: 'bronze', nextTier: { tier: 'silver', points: 150 },
@@ -144,7 +144,7 @@ describe('progressStore', () => {
     repo.classroomProgress.mockResolvedValueOnce([{ id: 'u-1', name: 'Carla', username: 'carla.dias', topics: [] }])
 
     await store.loadAttempt(OWN, 'a-1')
-    await store.loadClassroom('c-1')
+    await store.loadClassroom('c-1', 's-1')
 
     expect(store.reviewed?.id).toBe('a-1')
     expect(repo.attempt).toHaveBeenCalledWith(OWN, 'a-1')
@@ -160,7 +160,7 @@ describe('progressStore', () => {
     repo.classroomProgress.mockRejectedValueOnce(new ApiError('auth.forbidden'))
 
     await store.loadAttempt(STAFF, 'a-1')
-    await store.loadClassroom('c-1')
+    await store.loadClassroom('c-1', 's-1')
 
     expect(store.reviewError?.code).toBe('quiz.attempt_not_found')
     expect(store.classroomError?.code).toBe('auth.forbidden')
@@ -194,7 +194,7 @@ describe('progressStore', () => {
     repo.classroomProgress.mockResolvedValueOnce([{ id: 'u-1', name: 'Carla', username: 'c', topics: [] }])
     await store.loadTopic(OWN, 't-1')
     await store.loadAttempt(OWN, 'a-1')
-    await store.loadClassroom('c-1')
+    await store.loadClassroom('c-1', 's-1')
 
     const never = new Promise<never>(() => undefined)
     repo.topicHistory.mockReturnValue(never)
@@ -202,7 +202,7 @@ describe('progressStore', () => {
     repo.classroomProgress.mockReturnValue(never)
     void store.loadTopic(STAFF, 't-1')
     void store.loadAttempt(OWN, 'a-2')
-    void store.loadClassroom('c-2')
+    void store.loadClassroom('c-2', 's-1')
 
     expect([store.history, store.wrong, store.reviewed, store.classroom]).toEqual([null, [], null, []])
   })

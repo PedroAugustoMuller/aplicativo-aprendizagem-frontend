@@ -29,7 +29,7 @@ async function renderAt(path: string, routes: RouteRecordRaw[]) {
 
 const ROUTES = [
   { path: '/subjects/:subjectId/topics/:topicId/review', component: WrongQuestionsPage },
-  { path: '/classrooms/:classroomId/students/:studentId/topics/:topicId/review', component: WrongQuestionsPage },
+  { path: '/classrooms/:classroomId/subjects/:subjectId/students/:studentId/topics/:topicId/review', component: WrongQuestionsPage },
 ]
 const WRONG = [{
   questionId: 'q1', type: 'multiple_choice' as const, statement: 'Sódio?', options: [{ id: 'na', text: 'Na' }, { id: 's', text: 'S' }],
@@ -67,9 +67,9 @@ describe('WrongQuestionsPage', () => {
 
   it('shows staff the student answer', async () => {
     repo.wrongQuestions.mockResolvedValue(WRONG)
-    const { wrapper } = await renderAt('/classrooms/c-1/students/u-9/topics/t-1/review', ROUTES)
+    const { wrapper } = await renderAt('/classrooms/c-1/subjects/s-1/students/u-9/topics/t-1/review', ROUTES)
 
     expect(wrapper.get('[data-testid="wrong-question-0"]').text()).toContain('Resposta do aluno: S')
-    expect(repo.wrongQuestions).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', studentId: 'u-9' }, 't-1')
+    expect(repo.wrongQuestions).toHaveBeenCalledWith({ kind: 'student', classroomId: 'c-1', subjectId: 's-1', studentId: 'u-9' }, 't-1')
   })
 })

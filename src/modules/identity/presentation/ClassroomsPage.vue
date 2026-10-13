@@ -2,12 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOnline } from '@vueuse/core'
-import { mdiAccountMultiple, mdiCancel, mdiPencil, mdiPlus } from '@mdi/js'
+import { mdiAccountMultiple, mdiBookMultiple, mdiCancel, mdiPencil, mdiPlus } from '@mdi/js'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import AssignTeachersDialog from '@/modules/identity/presentation/AssignTeachersDialog.vue'
 import ClassroomFormDialog from '@/modules/identity/presentation/ClassroomFormDialog.vue'
+import ClassroomSubjectsDialog from '@/modules/identity/presentation/ClassroomSubjectsDialog.vue'
+import { subjectsTaughtBy } from '@/modules/identity/domain/assignments'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
@@ -26,6 +28,7 @@ const isAdmin = computed(() => session.knownUser?.role === 'admin')
 const formOpen = ref(false)
 const editing = ref<Classroom | null>(null)
 const assigning = ref<Classroom | null>(null)
+const subjectsOf = ref<Classroom | null>(null)
 const deactivating = ref<Classroom | null>(null)
 const busy = ref(false)
 const actionError = ref<ApiError | null>(null)
@@ -40,20 +43,36 @@ onMounted(() => {
   }
 })
 
+const subjectsLine = (classroom: Classroom): string =>
+  classroom.subjectIds.length === 0
+    ? t('classrooms.noSubjects')
+    : classroom.subjectIds.map((id) => store.subjectName(id) ?? '…').join(' · ')
+
+const scopeOf = (subjectId: string | null): string =>
+  subjectId === null ? t('classrooms.wholeClass') : (store.subjectName(subjectId) ?? '…')
+
 function teacherLine(classroom: Classroom): string {
-  if (classroom.teacherIds.length === 0) {
+  if (classroom.assignments.length === 0) {
     return t('classrooms.noTeachers')
   }
 
   if (isAdmin.value) {
-    return classroom.teacherIds
-      .map((id) => teachers.teachers.find((teacher) => teacher.id === id)?.name ?? '…')
+    return classroom.assignments
+      .map((a) => t('classrooms.teacherScope', {
+        name: teachers.teachers.find((teacher) => teacher.id === a.teacherId)?.name ?? '…',
+        scope: scopeOf(a.subjectId),
+      }))
       .join(', ')
   }
 
-  const others = classroom.teacherIds.filter((id) => id !== session.knownUser?.userId).length
+  // Teachers cannot list teachers (admin-only endpoint): their own scope, then "and N more".
+  const me = session.knownUser?.userId ?? ''
+  const mine = classroom.assignments.some((a) => a.teacherId === me && a.subjectId === null)
+    ? t('classrooms.wholeClass')
+    : subjectsTaughtBy(classroom, me).map((id) => store.subjectName(id) ?? '…').join(', ')
+  const others = new Set(classroom.assignments.filter((a) => a.teacherId !== me).map((a) => a.teacherId)).size
 
-  return others === 0 ? t('classrooms.you') : t('classrooms.youAndOthers', { count: others })
+  return others === 0 ? t('classrooms.youScope', { scope: mine }) : t('classrooms.youScopeAndOthers', { scope: mine, count: others })
 }
 
 function openForm(classroom: Classroom | null): void {
@@ -154,7 +173,7 @@ async function confirmDeactivate(): Promise<void> {
             <v-card-title class="text-wrap">
               {{ classroom.name }}
             </v-card-title>
-            <v-card-subtitle>{{ store.subjectName(classroom.subjectId) ?? '' }}</v-card-subtitle>
+            <v-card-subtitle>{{ subjectsLine(classroom) }}</v-card-subtitle>
             <template
               v-if="!classroom.active"
               #append
@@ -184,6 +203,16 @@ async function confirmDeactivate(): Promise<void> {
             @click="openForm(classroom)"
           >
             {{ t('classrooms.edit') }}
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            :prepend-icon="mdiBookMultiple"
+            :disabled="!online"
+            :data-testid="`classroom-subjects-${classroom.id}`"
+            @click="subjectsOf = classroom"
+          >
+            {{ t('classrooms.subjects') }}
           </v-btn>
           <v-btn
             size="small"
@@ -219,6 +248,11 @@ async function confirmDeactivate(): Promise<void> {
       :model-value="assigning !== null"
       :classroom="assigning"
       @update:model-value="(open) => { if (!open) assigning = null }"
+    />
+    <ClassroomSubjectsDialog
+      :model-value="subjectsOf !== null"
+      :classroom="subjectsOf"
+      @update:model-value="(open) => { if (!open) subjectsOf = null }"
     />
     <ConfirmDialog
       :model-value="deactivating !== null"

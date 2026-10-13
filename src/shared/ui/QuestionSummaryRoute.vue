@@ -8,8 +8,8 @@ import { useTopicStore } from '@/modules/content/application/topicStore'
 import QuestionSummaryPage from '@/modules/quiz/presentation/QuestionSummaryPage.vue'
 import { useViewerRole } from '@/shared/auth/viewer'
 
-// Composition root: identity names the classroom and knows its subject, content names the
-// topic, quiz shows the summary. None of them imports another.
+// Composition root: identity names the classroom, the URL carries the subject, content names
+// the topic, quiz shows the summary. None of them imports another.
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +24,7 @@ const param = (name: string): string => {
 }
 
 const classroomId = computed(() => param('classroomId'))
+const subjectId = computed(() => param('subjectId'))
 const topicId = computed(() => param('topicId'))
 const classroom = computed(() => (classroomId.value === '' ? null : classrooms.find(classroomId.value)))
 const topicName = computed(() => topics.topics.find((topic) => topic.id === topicId.value)?.name ?? '')
@@ -40,9 +41,9 @@ watch(classroomId, async (id) => {
   }
 }, { immediate: true })
 
-watch(() => classroom.value?.subjectId, (subjectId) => {
-  if (subjectId !== undefined && topics.subjectId !== subjectId) {
-    void topics.load(subjectId)
+watch(subjectId, (id) => {
+  if (id !== '' && topics.subjectId !== id) {
+    void topics.load(id)
   }
 }, { immediate: true })
 </script>
@@ -50,7 +51,7 @@ watch(() => classroom.value?.subjectId, (subjectId) => {
 <template>
   <div>
     <v-btn
-      :to="`/classrooms/${classroomId}/progress`"
+      :to="`/classrooms/${classroomId}/subjects/${subjectId}/progress`"
       variant="text"
       :prepend-icon="mdiArrowLeft"
       class="mb-2 px-0"

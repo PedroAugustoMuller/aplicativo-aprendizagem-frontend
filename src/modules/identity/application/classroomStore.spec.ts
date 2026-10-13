@@ -8,11 +8,13 @@ import { ApiError } from '@/shared/api/error'
 
 vi.mock('@/modules/identity/infrastructure/HttpClassroomRepository', () => ({
   classroomRepository: {
-    list: vi.fn(), subjectOptions: vi.fn(), create: vi.fn(), update: vi.fn(), assignTeachers: vi.fn(), deactivate: vi.fn(),
+    list: vi.fn(), subjectOptions: vi.fn(), create: vi.fn(), rename: vi.fn(), replaceSubjects: vi.fn(), assignTeachers: vi.fn(), deactivate: vi.fn(),
   },
 }))
 
-const QUIMICA_1 = { id: 'c-1', name: 'Química 1', subjectId: 's-1', teacherIds: ['t-1'], studentCount: 2, active: true }
+const QUIMICA_1 = {
+  id: 'c-1', name: 'Química 1', subjectIds: ['s-1'], assignments: [{ teacherId: 't-1', subjectId: null }], studentCount: 2, active: true,
+}
 const QUIMICA = { id: 's-1', name: 'Química', active: true }
 
 describe('classroomStore', () => {
@@ -65,13 +67,27 @@ describe('classroomStore', () => {
 
   it('reloads after each change', async () => {
     const store = useClassroomStore()
-    await store.create('c-2', { name: 'Química 2', subjectId: 's-1' })
-    await store.update('c-2', { name: 'Química B', subjectId: 's-1' })
-    await store.assignTeachers('c-2', ['t-1'])
+    await store.create('c-2', { name: 'Química 2', subjectIds: ['s-1'] })
+    await store.rename('c-2', 'Química B')
+    await store.replaceSubjects('c-2', ['s-1', 's-2'])
+    await store.assignTeachers('c-2', [{ teacherId: 't-1', subjectId: 's-1' }])
     await store.deactivate('c-2')
 
-    expect(classroomRepository.create).toHaveBeenCalledWith('c-2', { name: 'Química 2', subjectId: 's-1' })
-    expect(classroomRepository.list).toHaveBeenCalledTimes(4)
+    expect(classroomRepository.create).toHaveBeenCalledWith('c-2', { name: 'Química 2', subjectIds: ['s-1'] })
+    expect(classroomRepository.rename).toHaveBeenCalledWith('c-2', 'Química B')
+    expect(classroomRepository.replaceSubjects).toHaveBeenCalledWith('c-2', ['s-1', 's-2'])
+    expect(classroomRepository.assignTeachers).toHaveBeenCalledWith('c-2', [{ teacherId: 't-1', subjectId: 's-1' }])
+    expect(classroomRepository.list).toHaveBeenCalledTimes(5)
+  })
+
+  it('reads the classroom list under the v2 cache key', async () => {
+    const storage = createMemoryStorage()
+    configureOffline({ userId: () => 'u-1', storage })
+
+    await useClassroomStore().load()
+
+    // v2: a phone holding the old single-subject snapshot must not render it.
+    expect((await storage.keys()).some((key) => key.includes('identity:classrooms:v2'))).toBe(true)
   })
 
   it('reset forgets everything', async () => {

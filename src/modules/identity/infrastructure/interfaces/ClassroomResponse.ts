@@ -2,8 +2,8 @@
 export interface ClassroomResponse {
   id: string
   name: string
-  subject_id: string
-  teacher_ids: string[]
+  subject_ids: string[]
+  teachers: { teacher_id: string; subject_id: string | null }[]
   student_count: number
   active: boolean
 }

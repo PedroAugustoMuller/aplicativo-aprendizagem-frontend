@@ -16,7 +16,7 @@ const store = useClassroomStore()
 const online = useOnline()
 
 const name = ref('')
-const subjectId = ref<string | null>(null)
+const subjectIds = ref<string[]>([])
 const busy = ref(false)
 const error = ref<ApiError | null>(null)
 let requestId = ''
@@ -27,35 +27,33 @@ watch(
     if (open) {
       requestId = globalThis.crypto.randomUUID()
       name.value = props.classroom?.name ?? ''
-      subjectId.value = props.classroom?.subjectId ?? null
+      subjectIds.value = []
       error.value = null
     }
   },
   { immediate: true },
 )
 
-// Only active subjects can receive a class; keep the current one visible when editing.
+// Subjects are picked only when creating; afterwards "Matérias da turma" manages them.
 const subjectItems = computed(() =>
-  store.subjects
-    .filter((subject) => subject.active || subject.id === props.classroom?.subjectId)
-    .map((subject) => ({ title: subject.name, value: subject.id })),
+  store.subjects.filter((subject) => subject.active).map((subject) => ({ title: subject.name, value: subject.id })),
 )
 const message = computed(() => (error.value === null ? null : apiErrorMessage(error.value, t, te)))
 const fieldMessages = (field: string): string[] =>
   (error.value?.fields?.[field] ?? []).map((entry) => apiErrorMessage(new ApiError(entry.code, entry.params), t, te))
-const canSave = computed(() => online.value && !busy.value && name.value.trim() !== '' && subjectId.value !== null)
+const canSave = computed(() => online.value && !busy.value && name.value.trim() !== '')
 
 async function save(): Promise<void> {
-  if (!canSave.value || subjectId.value === null) {
+  if (!canSave.value) {
     return
   }
 
   busy.value = true
   error.value = null
-  const input = { name: name.value.trim(), subjectId: subjectId.value }
-
   try {
-    await (props.classroom === null ? store.create(requestId, input) : store.update(props.classroom.id, input))
+    await (props.classroom === null
+      ? store.create(requestId, { name: name.value.trim(), subjectIds: subjectIds.value })
+      : store.rename(props.classroom.id, name.value.trim()))
     emit('update:modelValue', false)
   } catch (failure: unknown) {
     error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
@@ -85,11 +83,15 @@ async function save(): Promise<void> {
             autofocus
           />
           <v-select
-            v-model="subjectId"
-            data-testid="classroom-form-subject"
-            :label="t('classrooms.subject')"
+            v-if="classroom === null"
+            v-model="subjectIds"
+            data-testid="classroom-form-subjects"
+            :label="t('classrooms.subjectsLabel')"
             :items="subjectItems"
-            :error-messages="fieldMessages('subject_id')"
+            :error-messages="fieldMessages('subject_ids')"
+            multiple
+            chips
+            closable-chips
           />
         </v-form>
         <v-alert

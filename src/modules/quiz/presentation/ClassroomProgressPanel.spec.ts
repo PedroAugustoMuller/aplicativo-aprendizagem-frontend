@@ -23,7 +23,7 @@ async function render(width: number) {
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:any(.*)*', component: { render: () => null } }] })
   await router.push('/')
   const wrapper = mount(ClassroomProgressPanel, {
-    props: { classroomId: 'c-1', classroomName: '9º A', topics: TOPICS },
+    props: { classroomId: 'c-1', subjectId: 's-1', classroomName: '9º A', subjectName: 'Química', topics: TOPICS },
     global: { plugins: [vuetify, i18n, router] },
   })
   await flushPromises()
@@ -47,9 +47,10 @@ describe('ClassroomProgressPanel', () => {
     expect(wrapper.text()).toContain('Átomos')
     const cell = wrapper.get('[data-testid="classroom-progress-cell-u-1-t-1"]')
     expect(cell.text()).toContain('Bronze · 60 pts')
-    expect(cell.attributes('href')).toBe('/classrooms/c-1/students/u-1/topics/t-1/progress')
+    expect(cell.attributes('href')).toBe('/classrooms/c-1/subjects/s-1/students/u-1/topics/t-1/progress')
     expect(wrapper.get('[data-testid="classroom-progress-cell-u-1-t-2"]').text()).toContain('Ferro · 0 pts')
-    expect(repo.classroomProgress).toHaveBeenCalledWith('c-1')
+    expect(repo.classroomProgress).toHaveBeenCalledWith('c-1', 's-1')
+    expect(wrapper.text()).toContain('9º A · Química')
   })
 
   it('says when the classroom has no students', async () => {
@@ -65,7 +66,7 @@ describe('ClassroomProgressPanel', () => {
     for (const topic of TOPICS) {
       const link = wrapper.get(`[data-testid="classroom-progress-topic-${topic.id}"]`)
       expect(link.text()).toContain(topic.name)
-      expect(link.attributes('href')).toBe(`/classrooms/c-1/topics/${topic.id}/questions`)
+      expect(link.attributes('href')).toBe(`/classrooms/c-1/subjects/s-1/topics/${topic.id}/questions`)
     }
   })
 })

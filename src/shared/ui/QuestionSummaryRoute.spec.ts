@@ -27,7 +27,7 @@ const vuetify = createVuetify({ components, directives })
 async function renderAt(path: string) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/classrooms/:classroomId/topics/:topicId/questions', component: QuestionSummaryRoute }, { path: '/:any(.*)*', component: { render: () => null } }],
+    routes: [{ path: '/classrooms/:classroomId/subjects/:subjectId/topics/:topicId/questions', component: QuestionSummaryRoute }, { path: '/:any(.*)*', component: { render: () => null } }],
   })
   await router.push(path)
   const wrapper = mount({ render: () => h(RouterView) }, { global: { plugins: [vuetify, i18n, router] } })
@@ -43,24 +43,25 @@ describe('QuestionSummaryRoute', () => {
     configureViewerId(() => 'u-1')
     configureViewer(() => 'teacher')
     vi.resetAllMocks()
-    classroomsApi.list.mockResolvedValue([{ id: 'c-1', name: '9º A', subjectId: 's-1', teacherIds: [], studentCount: 1, active: true }])
+    classroomsApi.list.mockResolvedValue([{ id: 'c-1', name: '9º A', subjectIds: ['s-1', 's-2'], assignments: [], studentCount: 1, active: true }])
     classroomsApi.subjectOptions.mockResolvedValue([])
     topicsApi.listBySubject.mockResolvedValue([{ id: 't-1', name: 'Tabela Periódica', description: '', position: 0, active: true, questionCount: 3 }])
     progressApi.questionSummary.mockResolvedValue({ students: 1, questions: [] })
   })
 
   it('names the topic and the classroom, and goes back to the grid', async () => {
-    const { wrapper } = await renderAt('/classrooms/c-1/topics/t-1/questions')
+    const { wrapper } = await renderAt('/classrooms/c-1/subjects/s-1/topics/t-1/questions')
 
     expect(wrapper.text()).toContain('Questões de Tabela Periódica')
     expect(wrapper.get('[data-testid="question-summary-scope-classroom"]').text()).toBe('9º A')
     expect(topicsApi.listBySubject).toHaveBeenCalledWith('s-1')
     expect(progressApi.questionSummary).toHaveBeenCalledWith({ kind: 'classroom', classroomId: 'c-1' }, 't-1')
-    expect(wrapper.get('[data-testid="question-summary-back"]').attributes('href')).toBe('/classrooms/c-1/progress')
+    expect(wrapper.get('[data-testid="question-summary-back"]').attributes('href')).toBe('/classrooms/c-1/subjects/s-1/progress')
+    expect(topicsApi.listBySubject).toHaveBeenCalledWith('s-1')
   })
 
   it('keeps the scope in the URL', async () => {
-    const { wrapper, router } = await renderAt('/classrooms/c-1/topics/t-1/questions?scope=all')
+    const { wrapper, router } = await renderAt('/classrooms/c-1/subjects/s-1/topics/t-1/questions?scope=all')
 
     expect(progressApi.questionSummary).toHaveBeenCalledWith({ kind: 'subject' }, 't-1')
     expect(wrapper.get('[data-testid="question-summary-scope-all"]').text()).toBe('Todas as minhas turmas')
@@ -77,7 +78,7 @@ describe('QuestionSummaryRoute', () => {
 
   it('tells an admin the switch covers the whole subject', async () => {
     configureViewer(() => 'admin')
-    const { wrapper } = await renderAt('/classrooms/c-1/topics/t-1/questions')
+    const { wrapper } = await renderAt('/classrooms/c-1/subjects/s-1/topics/t-1/questions')
 
     expect(wrapper.get('[data-testid="question-summary-scope-all"]').text()).toBe('Todas as turmas da matéria')
   })

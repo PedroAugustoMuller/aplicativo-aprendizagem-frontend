@@ -99,10 +99,10 @@ export type SummaryScope =
   | { readonly kind: 'classroom'; readonly classroomId: string }
   | { readonly kind: 'subject' }
 
-/** Whose progress a page shows: the viewer's own, or a classroom student's (staff). */
+/** Whose progress a page shows: the viewer's own, or a classroom student's within one subject (staff). */
 export type ProgressSource =
   | { readonly kind: 'own' }
-  | { readonly kind: 'student'; readonly classroomId: string; readonly studentId: string }
+  | { readonly kind: 'student'; readonly classroomId: string; readonly subjectId: string; readonly studentId: string }
 
 export const OWN: ProgressSource = { kind: 'own' }
 
