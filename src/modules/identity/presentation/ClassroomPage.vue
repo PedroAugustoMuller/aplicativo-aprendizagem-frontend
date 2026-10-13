@@ -7,7 +7,9 @@ import { mdiChartBar, mdiAccountCheck, mdiAccountOff, mdiAccountPlus, mdiArrowLe
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useRosterStore } from '@/modules/identity/application/rosterStore'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
+import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { subjectsTaughtBy } from '@/modules/identity/domain/assignments'
+import { useTeacherLine } from '@/modules/identity/presentation/useTeacherLine'
 import AddStudentsDialog from '@/modules/identity/presentation/AddStudentsDialog.vue'
 import StudentSearchDialog from '@/modules/identity/presentation/StudentSearchDialog.vue'
 import TemporaryPasswordDialog from '@/modules/identity/presentation/TemporaryPasswordDialog.vue'
@@ -26,6 +28,8 @@ const router = useRouter()
 const classrooms = useClassroomStore()
 const roster = useRosterStore()
 const session = useSessionStore()
+const teachers = useTeacherStore()
+const teacherLine = useTeacherLine()
 const online = useOnline()
 
 const classroomId = computed(() => {
@@ -61,7 +65,14 @@ const busy = ref(false)
 const actionError = ref<ApiError | null>(null)
 const actionMessage = computed(() => (actionError.value === null ? null : apiErrorMessage(actionError.value, t, te)))
 
-onMounted(() => void classrooms.ensureLoaded())
+onMounted(() => {
+  void classrooms.ensureLoaded()
+
+  // Only admins may list teachers (backend); teachers see their own scope.
+  if (session.knownUser?.role === 'admin') {
+    void teachers.load()
+  }
+})
 watch(classroomId, (id) => void roster.load(id), { immediate: true })
 
 async function run(action: () => Promise<void>): Promise<void> {
@@ -140,6 +151,13 @@ const openSlips = (): Promise<void> => router.push(`/classrooms/${classroomId.va
       data-testid="classroom-subjects-line"
     >
       {{ subjectsLine }}
+    </p>
+    <p
+      v-if="classroom !== null"
+      class="text-medium-emphasis mb-4"
+      data-testid="classroom-teachers-line"
+    >
+      {{ teacherLine(classroom) }}
     </p>
 
     <div class="d-flex flex-wrap ga-2 mb-4">

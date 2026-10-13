@@ -240,6 +240,7 @@ export default {
     removeAssignment: 'Remove assignment',
     redundant: '{names}: already teaches the whole class, no per-subject assignment needed.',
     teacherScope: '{name} ({scope})',
+    duplicate: '{names}: the same assignment appears twice.',
     students: 'No students | 1 student | {count} students',
     noTeachers: 'No teacher',
     youScope: 'You · {scope}',

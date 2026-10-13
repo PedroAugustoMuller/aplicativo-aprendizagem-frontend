@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assignmentsDroppedBy, redundantTeacherIds, subjectsTaughtBy } from '@/modules/identity/domain/assignments'
+import { assignmentsDroppedBy, duplicatedTeacherIds, redundantTeacherIds, subjectsTaughtBy } from '@/modules/identity/domain/assignments'
 import type { Classroom } from '@/modules/identity/domain/Classroom'
 
 const CLASSROOM: Classroom = {
@@ -29,5 +29,13 @@ describe('classroom assignments', () => {
   it('lists the assignments a new subject list would drop', () => {
     expect(assignmentsDroppedBy(CLASSROOM, ['port'])).toEqual([{ teacherId: 'carlos', subjectId: 'mat' }])
     expect(assignmentsDroppedBy(CLASSROOM, ['mat', 'port', 'hist'])).toEqual([])
+  })
+  it('finds teachers whose same assignment appears twice', () => {
+    expect(duplicatedTeacherIds([
+      { teacherId: 'ana', subjectId: 'mat' },
+      { teacherId: 'ana', subjectId: 'mat' },
+      { teacherId: 'ana', subjectId: 'port' },
+      { teacherId: 'carlos', subjectId: null },
+    ])).toEqual(['ana'])
   })
 })

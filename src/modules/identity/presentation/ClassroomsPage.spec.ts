@@ -186,6 +186,20 @@ describe('ClassroomsPage', () => {
     expect(wrapper.find('[data-testid="assign-teachers-save"]').attributes('disabled')).toBeDefined()
   })
 
+  it('blocks the same assignment twice with a message naming the teacher', async () => {
+    signIn('admin', 'a-1')
+
+    const wrapper = await render()
+    await wrapper.find('[data-testid="classroom-teachers-c-1"]').trigger('click')
+    await wrapper.find('[data-testid="assign-add"]').trigger('click')
+    select(wrapper, 'assign-row-2-teacher', 't-2')
+    select(wrapper, 'assign-row-2-scope', 's-1')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="assign-duplicate"]').text()).toContain('Clara')
+    expect(wrapper.find('[data-testid="assign-teachers-save"]').attributes('disabled')).toBeDefined()
+  })
+
   it('asks before deactivating', async () => {
     signIn('admin', 'a-1')
     classrooms.deactivate.mockResolvedValue(undefined)

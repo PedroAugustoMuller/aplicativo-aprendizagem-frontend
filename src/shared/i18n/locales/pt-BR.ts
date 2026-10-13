@@ -240,6 +240,7 @@ export default {
     removeAssignment: 'Remover vínculo',
     redundant: '{names}: já é da turma toda, não precisa de vínculo por matéria.',
     teacherScope: '{name} ({scope})',
+    duplicate: '{names}: o mesmo vínculo aparece duas vezes.',
     students: 'Nenhum aluno | 1 aluno | {count} alunos',
     noTeachers: 'Sem professor',
     youScope: 'Você · {scope}',

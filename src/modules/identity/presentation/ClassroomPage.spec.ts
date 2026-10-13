@@ -77,6 +77,13 @@ describe('ClassroomPage', () => {
     expect(wrapper.find('[data-testid="classroom-progress"]').text()).toBe('Desempenho')
   })
 
+  it('shows the teachers with their scope in the header', async () => {
+    const { wrapper } = await render()
+
+    // Bruno (t-1) teaches Química; one other teacher has the whole class.
+    expect(wrapper.find('[data-testid="classroom-teachers-line"]').text()).toBe('Você · Química e mais 1')
+  })
+
   it('offers a whole-class teacher a menu with every subject', async () => {
     useSessionStore().$patch({
       user: { userId: 't-2', name: 'Clara', login: 'c@escola.br', role: 'teacher', mustChangePassword: false },

@@ -22,3 +22,21 @@ export function redundantTeacherIds(assignments: readonly TeacherAssignment[]): 
 export function assignmentsDroppedBy(classroom: Classroom, nextSubjectIds: readonly string[]): readonly TeacherAssignment[] {
   return classroom.assignments.filter((a) => a.subjectId !== null && !nextSubjectIds.includes(a.subjectId))
 }
+
+/** Teachers with the same assignment listed twice: the backend rejects the list without naming a field. */
+export function duplicatedTeacherIds(assignments: readonly TeacherAssignment[]): readonly string[] {
+  const seen = new Set<string>()
+  const duplicated = new Set<string>()
+
+  for (const a of assignments) {
+    const key = `${a.teacherId}|${a.subjectId ?? '*'}`
+
+    if (seen.has(key)) {
+      duplicated.add(a.teacherId)
+    }
+
+    seen.add(key)
+  }
+
+  return [...duplicated]
+}

@@ -5,7 +5,7 @@ import { useOnline } from '@vueuse/core'
 import { mdiClose, mdiPlus } from '@mdi/js'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useTeacherStore } from '@/modules/identity/application/teacherStore'
-import { redundantTeacherIds } from '@/modules/identity/domain/assignments'
+import { duplicatedTeacherIds, redundantTeacherIds } from '@/modules/identity/domain/assignments'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Classroom, TeacherAssignment } from '@/modules/identity/domain/Classroom'
@@ -59,7 +59,14 @@ const redundant = computed(() =>
     .map((id) => teachers.teachers.find((teacher) => teacher.id === id)?.name ?? '…')
     .join(', '),
 )
-const canSave = computed(() => online.value && !busy.value && redundant.value === '' && rows.value.every((row) => row.teacherId !== null))
+const duplicated = computed(() =>
+  duplicatedTeacherIds(assignments.value)
+    .map((id) => teachers.teachers.find((teacher) => teacher.id === id)?.name ?? '…')
+    .join(', '),
+)
+const canSave = computed(() =>
+  online.value && !busy.value && redundant.value === '' && duplicated.value === '' && rows.value.every((row) => row.teacherId !== null),
+)
 const message = computed(() => (error.value === null ? null : apiErrorMessage(error.value, t, te)))
 
 function addRow(): void {
@@ -148,6 +155,14 @@ async function save(): Promise<void> {
           class="mb-2"
           data-testid="assign-redundant"
           :text="t('classrooms.redundant', { names: redundant })"
+        />
+        <v-alert
+          v-if="duplicated !== ''"
+          type="warning"
+          variant="tonal"
+          class="mb-2"
+          data-testid="assign-duplicate"
+          :text="t('classrooms.duplicate', { names: duplicated })"
         />
         <v-alert
           v-if="message"

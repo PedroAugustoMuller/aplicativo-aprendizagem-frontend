@@ -9,7 +9,7 @@ import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import AssignTeachersDialog from '@/modules/identity/presentation/AssignTeachersDialog.vue'
 import ClassroomFormDialog from '@/modules/identity/presentation/ClassroomFormDialog.vue'
 import ClassroomSubjectsDialog from '@/modules/identity/presentation/ClassroomSubjectsDialog.vue'
-import { subjectsTaughtBy } from '@/modules/identity/domain/assignments'
+import { useTeacherLine } from '@/modules/identity/presentation/useTeacherLine'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import OfflineBanner from '@/shared/ui/OfflineBanner.vue'
@@ -48,32 +48,7 @@ const subjectsLine = (classroom: Classroom): string =>
     ? t('classrooms.noSubjects')
     : classroom.subjectIds.map((id) => store.subjectName(id) ?? '…').join(' · ')
 
-const scopeOf = (subjectId: string | null): string =>
-  subjectId === null ? t('classrooms.wholeClass') : (store.subjectName(subjectId) ?? '…')
-
-function teacherLine(classroom: Classroom): string {
-  if (classroom.assignments.length === 0) {
-    return t('classrooms.noTeachers')
-  }
-
-  if (isAdmin.value) {
-    return classroom.assignments
-      .map((a) => t('classrooms.teacherScope', {
-        name: teachers.teachers.find((teacher) => teacher.id === a.teacherId)?.name ?? '…',
-        scope: scopeOf(a.subjectId),
-      }))
-      .join(', ')
-  }
-
-  // Teachers cannot list teachers (admin-only endpoint): their own scope, then "and N more".
-  const me = session.knownUser?.userId ?? ''
-  const mine = classroom.assignments.some((a) => a.teacherId === me && a.subjectId === null)
-    ? t('classrooms.wholeClass')
-    : subjectsTaughtBy(classroom, me).map((id) => store.subjectName(id) ?? '…').join(', ')
-  const others = new Set(classroom.assignments.filter((a) => a.teacherId !== me).map((a) => a.teacherId)).size
-
-  return others === 0 ? t('classrooms.youScope', { scope: mine }) : t('classrooms.youScopeAndOthers', { scope: mine, count: others })
-}
+const teacherLine = useTeacherLine()
 
 function openForm(classroom: Classroom | null): void {
   editing.value = classroom
