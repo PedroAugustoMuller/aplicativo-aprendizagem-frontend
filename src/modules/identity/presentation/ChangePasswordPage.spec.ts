@@ -30,8 +30,10 @@ function render() {
   return mount(ChangePasswordPage, { global: { plugins: [vuetify, i18n] } })
 }
 
-async function fill(wrapper: ReturnType<typeof render>, current: string, next: string, confirmation: string) {
-  await wrapper.find('[data-testid="password-current"] input').setValue(current)
+async function fill(wrapper: ReturnType<typeof render>, next: string, confirmation: string, current?: string) {
+  if (current !== undefined) {
+    await wrapper.find('[data-testid="password-current"] input').setValue(current)
+  }
   await wrapper.find('[data-testid="password-new"] input').setValue(next)
   await wrapper.find('[data-testid="password-confirm"] input').setValue(confirmation)
 }
@@ -53,11 +55,11 @@ describe('ChangePasswordPage', () => {
     const change = vi.spyOn(useSessionStore(), 'changePassword').mockResolvedValue()
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'nova-senha-1', 'nova-senha-1')
+    await fill(wrapper, 'nova-senha-1', 'nova-senha-1')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await flushPromises()
 
-    expect(change).toHaveBeenCalledWith({ currentPassword: 'Temp2345', newPassword: 'nova-senha-1' })
+    expect(change).toHaveBeenCalledWith({ newPassword: 'nova-senha-1' })
     expect(push).toHaveBeenCalledWith('/subjects')
   })
 
@@ -66,7 +68,7 @@ describe('ChangePasswordPage', () => {
     vi.spyOn(useSessionStore(), 'changePassword').mockResolvedValue()
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'nova-senha-1', 'nova-senha-1')
+    await fill(wrapper, 'nova-senha-1', 'nova-senha-1')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await flushPromises()
 
@@ -77,7 +79,7 @@ describe('ChangePasswordPage', () => {
     const change = vi.spyOn(useSessionStore(), 'changePassword')
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'curta', 'curta')
+    await fill(wrapper, 'curta', 'curta')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await flushPromises()
 
@@ -90,25 +92,12 @@ describe('ChangePasswordPage', () => {
     const change = vi.spyOn(useSessionStore(), 'changePassword')
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'nova-senha-1', 'nova-senha-2')
+    await fill(wrapper, 'nova-senha-1', 'nova-senha-2')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await flushPromises()
 
     expect(change).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="password-confirm"]').text()).toContain('As senhas não conferem.')
-  })
-
-  it('shows a wrong current password as a translated message', async () => {
-    vi.spyOn(useSessionStore(), 'changePassword')
-      .mockRejectedValue(new ApiError('identity.current_password_invalid', {}, 422))
-
-    const wrapper = render()
-    await fill(wrapper, 'errada', 'nova-senha-1', 'nova-senha-1')
-    await wrapper.find('[data-testid="password-submit"]').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.find('[data-testid="password-error"]').text()).toBe('A senha atual está incorreta.')
-    expect(push).not.toHaveBeenCalled()
   })
 
   it('puts field-level server errors under the matching field', async () => {
@@ -119,7 +108,7 @@ describe('ChangePasswordPage', () => {
     )
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'Temp2345', 'Temp2345')
+    await fill(wrapper, 'Temp2345', 'Temp2345')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await flushPromises()
 
@@ -137,7 +126,7 @@ describe('ChangePasswordPage', () => {
     )
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'nova-senha-1', 'nova-senha-1')
+    await fill(wrapper, 'nova-senha-1', 'nova-senha-1')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await wrapper.find('form').trigger('submit')
@@ -152,10 +141,57 @@ describe('ChangePasswordPage', () => {
     vi.spyOn(useSessionStore(), 'changePassword').mockResolvedValue()
 
     const wrapper = render()
-    await fill(wrapper, 'Temp2345', 'nova-senha-1', 'nova-senha-1')
+    await fill(wrapper, 'nova-senha-1', 'nova-senha-1')
     await wrapper.find('[data-testid="password-submit"]').trigger('click')
     await flushPromises()
 
     expect(push).toHaveBeenCalledWith('/subjects')
+  })
+
+  it('does not ask a pending user for the temporary password again', () => {
+    expect(render().find('[data-testid="password-current"]').exists()).toBe(false)
+  })
+
+  it('shows a new password equal to the temporary one as a translated message', async () => {
+    vi.spyOn(useSessionStore(), 'changePassword')
+      .mockRejectedValue(new ApiError('identity.new_password_unchanged', {}, 422))
+
+    const wrapper = render()
+    await fill(wrapper, 'Temp2345', 'Temp2345')
+    await wrapper.find('[data-testid="password-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="password-error"]').text()).toBe('A nova senha precisa ser diferente da atual.')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  describe('voluntary change', () => {
+    beforeEach(() => {
+      useSessionStore().$patch({ user: { ...DIEGO, mustChangePassword: false } })
+    })
+
+    it('asks for and sends the current password', async () => {
+      const change = vi.spyOn(useSessionStore(), 'changePassword').mockResolvedValue()
+
+      const wrapper = render()
+      await fill(wrapper, 'nova-senha-1', 'nova-senha-1', 'minha-senha')
+      await wrapper.find('[data-testid="password-submit"]').trigger('click')
+      await flushPromises()
+
+      expect(change).toHaveBeenCalledWith({ currentPassword: 'minha-senha', newPassword: 'nova-senha-1' })
+    })
+
+    it('shows a wrong current password as a translated message', async () => {
+      vi.spyOn(useSessionStore(), 'changePassword')
+        .mockRejectedValue(new ApiError('identity.current_password_invalid', {}, 422))
+
+      const wrapper = render()
+      await fill(wrapper, 'nova-senha-1', 'nova-senha-1', 'errada')
+      await wrapper.find('[data-testid="password-submit"]').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="password-error"]').text()).toBe('A senha atual está incorreta.')
+      expect(push).not.toHaveBeenCalled()
+    })
   })
 })

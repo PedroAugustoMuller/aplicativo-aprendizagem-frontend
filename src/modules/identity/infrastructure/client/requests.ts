@@ -23,7 +23,7 @@ export const identityRequests = {
 
   currentUser: () => api.get<CurrentUserResponse>({ url: identityRoutes.me }),
 
-  changePassword: (data: { current_password: string; new_password: string }) =>
+  changePassword: (data: { current_password?: string; new_password: string }) =>
     api.put<null>({ url: identityRoutes.password, data }),
 
   listTeachers: () => api.get<AccountListItemResponse[]>({ url: identityRoutes.teachers }),

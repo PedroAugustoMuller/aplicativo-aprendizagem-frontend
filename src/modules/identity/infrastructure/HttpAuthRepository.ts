@@ -45,7 +45,7 @@ export const authRepository: AuthRepository = {
 
   async changePassword(change: PasswordChange): Promise<void> {
     await identityRequests.changePassword({
-      current_password: change.currentPassword,
+      ...(change.currentPassword === undefined ? {} : { current_password: change.currentPassword }),
       new_password: change.newPassword,
     })
   },

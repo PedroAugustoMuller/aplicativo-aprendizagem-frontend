@@ -326,6 +326,7 @@ export default {
       invalid_credentials: 'E-mail/usuário ou senha incorretos.',
       account_deactivated: 'Esta conta foi desativada. Fale com a escola.',
       current_password_invalid: 'A senha atual está incorreta.',
+      new_password_unchanged: 'A nova senha precisa ser diferente da atual.',
       email_already_taken: 'Este e-mail já está em uso.',
       password_change_required: 'Você precisa trocar sua senha antes de continuar.',
       student_not_found: 'Aluno não encontrado.',

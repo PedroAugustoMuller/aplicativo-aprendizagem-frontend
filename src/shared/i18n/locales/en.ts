@@ -326,6 +326,7 @@ export default {
       invalid_credentials: 'Incorrect email/username or password.',
       account_deactivated: 'This account has been deactivated. Talk to the school.',
       current_password_invalid: 'The current password is incorrect.',
+      new_password_unchanged: 'The new password must be different from the current one.',
       email_already_taken: 'This email is already in use.',
       password_change_required: 'You need to change your password before continuing.',
       student_not_found: 'Student not found.',

@@ -51,8 +51,9 @@ test('a student with a temporary password must replace it before anything else',
   // vue-router leaves "/" unencoded in query values; accept either form.
   await expect(page).toHaveURL(/\/change-password\?redirect=(%2F|\/)subjects/)
 
-  await expect(page.getByTestId('password-current').locator('input')).toBeFocused()
-  await page.getByTestId('password-current').locator('input').fill(diego.password)
+  // The temporary password was just typed at login; it is not asked again.
+  await expect(page.getByTestId('password-current')).toHaveCount(0)
+  await expect(page.getByTestId('password-new').locator('input')).toBeFocused()
   await page.getByTestId('password-new').locator('input').fill(newPassword)
   await page.getByTestId('password-confirm').locator('input').fill(newPassword)
   await page.getByTestId('password-submit').click()

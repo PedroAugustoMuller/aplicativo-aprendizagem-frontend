@@ -26,6 +26,10 @@ const error = ref<ApiError | null>(null)
 
 const errorMessage = computed(() => (error.value === null ? null : apiErrorMessage(error.value, t, te)))
 
+// The forced first change does not ask again for the temporary password typed
+// at login; the backend ignores it then. A voluntary change still needs it.
+const asksCurrent = computed(() => !session.mustChangePassword)
+
 const serverMessages = (field: string): string[] =>
   (error.value?.fields?.[field] ?? []).map((entry) =>
     apiErrorMessage(new ApiError(entry.code, entry.params), t, te),
@@ -57,7 +61,11 @@ async function submit(): Promise<void> {
   submitting.value = true
 
   try {
-    await session.changePassword({ currentPassword: current.value, newPassword: next.value })
+    await session.changePassword(
+      asksCurrent.value
+        ? { currentPassword: current.value, newPassword: next.value }
+        : { newPassword: next.value },
+    )
 
     await router.push(safeRedirect(route.query.redirect) ?? '/subjects')
   } catch (failure: unknown) {
@@ -93,6 +101,7 @@ async function submit(): Promise<void> {
 
           <v-form @submit.prevent="submit">
             <v-text-field
+              v-if="asksCurrent"
               v-model="current"
               data-testid="password-current"
               :label="t('password.current')"
@@ -108,6 +117,7 @@ async function submit(): Promise<void> {
               type="password"
               autocomplete="new-password"
               :error-messages="nextMessages"
+              :autofocus="!asksCurrent"
             />
             <v-text-field
               v-model="confirmation"

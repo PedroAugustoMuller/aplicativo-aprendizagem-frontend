@@ -20,6 +20,7 @@ export interface Credentials {
 }
 
 export interface PasswordChange {
-  readonly currentPassword: string
+  /** Absent on the forced first change: the backend does not ask for it then. */
+  readonly currentPassword?: string
   readonly newPassword: string
 }

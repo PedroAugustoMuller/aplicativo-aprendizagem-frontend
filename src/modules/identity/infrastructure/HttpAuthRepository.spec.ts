@@ -88,6 +88,15 @@ describe('HttpAuthRepository', () => {
     })
   })
 
+  it('leaves the current password out when there is none', async () => {
+    vi.mocked(identityRequests.changePassword).mockResolvedValue(null)
+
+    await authRepository.changePassword({ newPassword: 'nova-senha-1' })
+
+    // Strict: toHaveBeenCalledWith would accept a `current_password: undefined` key.
+    expect(vi.mocked(identityRequests.changePassword).mock.calls[0]?.[0]).toStrictEqual({ new_password: 'nova-senha-1' })
+  })
+
   it('maps the current user', async () => {
     vi.mocked(identityRequests.currentUser).mockResolvedValue({
       id: 'u-12', name: 'Carla Dias', login: 'carla.dias', role: 'student', must_change_password: false,
