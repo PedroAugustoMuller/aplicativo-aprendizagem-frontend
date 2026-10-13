@@ -60,7 +60,7 @@ test.describe('staff follow a classroom', () => {
   test('opens the classroom grid and a student topic page', async ({ page }) => {
     await page.goto(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}`)
     await page.getByTestId('classroom-progress').click()
-    await expect(page).toHaveURL(new RegExp(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/progress$`))
+    await expect(page).toHaveURL(new RegExp(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/subjects/${CHEMISTRY_ID}/progress$`))
 
     const cell = page.locator(`[data-testid^="classroom-progress-cell-${CARLA_ID}-"]`).first()
     // Every e2e run enrols more students in this classroom; on the phone layout the whole
@@ -73,10 +73,10 @@ test.describe('staff follow a classroom', () => {
   })
 
   test('sees which questions the classroom gets wrong, then all classrooms', async ({ page }) => {
-    await page.goto(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/progress`)
+    await page.goto(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/subjects/${CHEMISTRY_ID}/progress`)
     const topic = page.locator('[data-testid^="classroom-progress-topic-"]', { hasText: 'Tabela Periódica' })
     await topic.click()
-    await expect(page).toHaveURL(new RegExp(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/topics/[^/]+/questions$`))
+    await expect(page).toHaveURL(new RegExp(`/classrooms/${CHEMISTRY_1_CLASSROOM_ID}/subjects/${CHEMISTRY_ID}/topics/[^/]+/questions$`))
 
     // Counts depend on what earlier e2e runs left in the development database: check the shape.
     await expect(page.getByTestId('question-summary-context')).toHaveText(/^\d+ alunos · \d+ questões respondidas$/)
