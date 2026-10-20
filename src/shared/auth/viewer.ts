@@ -23,3 +23,14 @@ export function configureViewerId(id: () => string | null): void {
 export function viewerId(): string | null {
   return idSource()
 }
+
+// Whether "Gerar com IA" is on for this viewer; content must not import identity to know.
+let aiSource: () => boolean = () => false
+
+export function configureAiSuggestions(enabled: () => boolean): void {
+  aiSource = enabled
+}
+
+export function useAiSuggestionsEnabled(): ComputedRef<boolean> {
+  return computed(() => aiSource())
+}

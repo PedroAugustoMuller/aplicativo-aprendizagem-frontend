@@ -8,7 +8,8 @@ const USER_KEY = 'dp2.auth.user'
 
 const ROLES = ['admin', 'teacher', 'student']
 
-function isAuthenticatedUser(raw: unknown): raw is AuthenticatedUser {
+// `aiSuggestions` is not required: a user remembered before it existed reads as false.
+function isAuthenticatedUser(raw: unknown): raw is Omit<AuthenticatedUser, 'aiSuggestions'> & { aiSuggestions?: unknown } {
   return (
     typeof raw === 'object' && raw !== null &&
     'userId' in raw && typeof raw.userId === 'string' &&
@@ -45,7 +46,7 @@ export const tokenStorage = {
       const raw = globalThis.localStorage?.getItem(USER_KEY) ?? null
       const parsed: unknown = raw === null ? null : JSON.parse(raw)
 
-      return isAuthenticatedUser(parsed) ? parsed : null
+      return isAuthenticatedUser(parsed) ? { ...parsed, aiSuggestions: parsed.aiSuggestions === true } : null
     } catch {
       return null
     }

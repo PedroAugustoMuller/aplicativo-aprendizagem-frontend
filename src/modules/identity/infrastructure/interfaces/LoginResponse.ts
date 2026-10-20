@@ -5,6 +5,7 @@ export interface CurrentUserResponse {
   login: string
   role: string
   must_change_password: boolean
+  features?: { ai_suggestions?: boolean }
 }
 
 /** Mirrors the backend's POST /auth/login `data` object. */

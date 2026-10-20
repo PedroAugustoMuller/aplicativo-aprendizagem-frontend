@@ -10,6 +10,9 @@ const AUTH_FILE = fileURLToPath(new URL('./.auth/teacher.json', import.meta.url)
 const API_URL = 'http://localhost:8080/api/v1'
 const LOGIN_URL = `${API_URL}/auth/login`
 const BRUNO_FILE = fileURLToPath(new URL('./.auth/bruno.json', import.meta.url))
+// A second Bruno token for the ai suggestions journey: the API limit (120/min) is
+// per token, and that journey alone would push Bruno's shared token past it.
+const BRUNO_SUGGESTIONS_FILE = fileURLToPath(new URL('./.auth/bruno-suggestions.json', import.meta.url))
 const CARLA_FILE = fileURLToPath(new URL('./.auth/carla.json', import.meta.url))
 // A second Carla session for e2e/quiz.spec.ts only: the API throttles 120
 // requests/minute per token, and the quiz tests alone (both projects, offline
@@ -130,6 +133,7 @@ export default async function globalSetup(): Promise<void> {
 
     // One login each, in their own throttle buckets (login+IP): Ana's budget is unchanged.
     await signIn(context, { login: 'bruno@escola.br', password: 'password' }, BRUNO_FILE)
+    await signIn(context, { login: 'bruno@escola.br', password: 'password' }, BRUNO_SUGGESTIONS_FILE)
     await signIn(context, { login: 'carla.dias', password: 'password' }, CARLA_FILE)
     await signIn(context, { login: 'carla.dias', password: 'password' }, CARLA_QUIZ_FILE)
   } finally {

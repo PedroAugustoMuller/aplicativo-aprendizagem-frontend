@@ -87,3 +87,21 @@ export function formProblems(form: QuestionForm): FormProblem[] {
 export function sameForm(a: QuestionForm, b: QuestionForm): boolean {
   return a.answer === b.answer && JSON.stringify(contentFromForm(a)) === JSON.stringify(contentFromForm(b))
 }
+
+export function formFromSuggestion(content: QuestionContent, newKey: () => string): QuestionForm {
+  if (content.type === 'true_false') {
+    return { type: 'true_false', statement: content.statement, explanation: content.explanation ?? '', options: [], correctKey: null, answer: content.answer }
+  }
+
+  const options = content.options.map((option) => ({ key: newKey(), id: null, text: option.text }))
+  const correctIndex = content.options.findIndex((option) => option.correct)
+
+  return {
+    type: 'multiple_choice',
+    statement: content.statement,
+    explanation: content.explanation ?? '',
+    options,
+    correctKey: options[correctIndex]?.key ?? null,
+    answer: null,
+  }
+}

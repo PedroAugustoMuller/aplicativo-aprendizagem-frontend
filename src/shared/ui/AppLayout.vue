@@ -10,6 +10,7 @@ import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { useQuestionStore } from '@/modules/content/application/questionStore'
+import { useQuestionSuggestionStore } from '@/modules/content/application/questionSuggestionStore'
 import { useTeacherStore } from '@/modules/identity/application/teacherStore'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
 import { useRosterStore } from '@/modules/identity/application/rosterStore'
@@ -41,6 +42,7 @@ const showNav = computed(() => session.hasSession && !session.mustChangePassword
 const subjects = useSubjectStore()
 const topics = useTopicStore()
 const questions = useQuestionStore()
+const suggestions = useQuestionSuggestionStore()
 const teachers = useTeacherStore()
 const classrooms = useClassroomStore()
 const roster = useRosterStore()
@@ -56,6 +58,7 @@ watch(
       subjects.reset()
       topics.reset()
       questions.reset()
+      suggestions.reset()
       teachers.reset()
       classrooms.reset()
       roster.reset()

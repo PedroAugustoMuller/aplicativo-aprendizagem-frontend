@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ref } from 'vue'
-import { configureViewer, configureViewerId, useViewerRole, viewerId } from '@/shared/auth/viewer'
+import { configureAiSuggestions, configureViewer, configureViewerId, useAiSuggestionsEnabled, useViewerRole, viewerId } from '@/shared/auth/viewer'
 
 describe('useViewerRole', () => {
   it('follows the configured source reactively', () => {
@@ -22,5 +22,18 @@ describe('viewerId', () => {
     expect(viewerId()).toBeNull()
     id = 'u-1'
     expect(viewerId()).toBe('u-1')
+  })
+})
+
+describe('useAiSuggestionsEnabled', () => {
+  it('is off until the composition root wires it, then follows it', () => {
+    expect(useAiSuggestionsEnabled().value).toBe(false)
+
+    let enabled = false
+    configureAiSuggestions(() => enabled)
+    const flag = useAiSuggestionsEnabled()
+    enabled = true
+
+    expect(flag.value).toBe(true)
   })
 })

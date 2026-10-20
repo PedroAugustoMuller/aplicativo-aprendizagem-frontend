@@ -4,6 +4,7 @@ import {
   contentFromForm,
   copyForm,
   formFromQuestion,
+  formFromSuggestion,
   formProblems,
   sameForm,
 } from '@/modules/content/application/questionForm'
@@ -93,5 +94,28 @@ describe('questionForm', () => {
     form.answer = false
 
     expect(sameForm(form, start)).toBe(false)
+  })
+})
+
+describe('formFromSuggestion', () => {
+  let n = 0
+  const newKey = () => `k-${++n}`
+
+  it('fills a multiple choice form with new option rows and the correct one marked', () => {
+    const form = formFromSuggestion({
+      type: 'multiple_choice', statement: 'Símbolo?', explanation: null,
+      options: [{ id: null, text: 'S', correct: false }, { id: null, text: 'Na', correct: true }],
+    }, newKey)
+
+    expect(form.options.map((o) => [o.id, o.text])).toEqual([[null, 'S'], [null, 'Na']])
+    expect(form.correctKey).toBe(form.options[1]!.key)
+    expect(form.explanation).toBe('')
+    expect(form.answer).toBeNull()
+  })
+
+  it('fills a true/false form with its answer', () => {
+    const form = formFromSuggestion({ type: 'true_false', statement: 'É metal.', explanation: 'Sim.', answer: false }, newKey)
+
+    expect(form).toMatchObject({ type: 'true_false', statement: 'É metal.', explanation: 'Sim.', answer: false, options: [], correctKey: null })
   })
 })

@@ -7,6 +7,7 @@ import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import QuestionFormPage from '@/modules/content/presentation/QuestionFormPage.vue'
+import { useQuestionSuggestionStore } from '@/modules/content/application/questionSuggestionStore'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
 
@@ -39,6 +40,7 @@ async function render(path: string) {
     routes: [
       { path: '/subjects/:subjectId/topics/:topicId/questions', component: Stub },
       { path: '/subjects/:subjectId/topics/:topicId/questions/new', component: QuestionFormPage },
+      { path: '/subjects/:subjectId/topics/:topicId/questions/suggestions', component: Stub },
       { path: '/subjects/:subjectId/topics/:topicId/questions/:questionId/edit', component: QuestionFormPage },
     ],
   })
@@ -228,5 +230,21 @@ describe('QuestionFormPage', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe(BANK)
+  })
+
+  it('opens prefilled from a suggestion, saves it with the suggestion key and returns to the suggestions', async () => {
+    const suggestions = useQuestionSuggestionStore()
+    suggestions.byTopic = { 't-1': [{ key: 'k-1', content: { type: 'true_false', statement: 'É metal.', explanation: null, answer: true } }] }
+
+    const { wrapper, router } = await render('/subjects/s-1/topics/t-1/questions/new?suggestion=k-1')
+    expect((wrapper.find('[data-testid="question-form-statement"] textarea:not(.v-textarea__sizer)').element as HTMLTextAreaElement).value).toBe('É metal.')
+    expect(wrapper.find('[data-testid="question-form-cancel"]').attributes('href')).toBe('/subjects/s-1/topics/t-1/questions/suggestions')
+
+    await wrapper.find('[data-testid="question-form-save"]').trigger('click')
+    await flushPromises()
+
+    expect(create).toHaveBeenCalledWith('t-1', 'k-1', expect.objectContaining({ statement: 'É metal.' }))
+    expect(suggestions.list('t-1')).toEqual([])
+    expect(router.currentRoute.value.path).toBe('/subjects/s-1/topics/t-1/questions/suggestions')
   })
 })

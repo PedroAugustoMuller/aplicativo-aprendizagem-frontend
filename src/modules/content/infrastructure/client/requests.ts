@@ -8,6 +8,10 @@ import type {
   QuestionResponse,
   QuestionUpdateBody,
 } from '@/modules/content/infrastructure/interfaces/QuestionResponse'
+import type {
+  QuestionSuggestionBody,
+  QuestionSuggestionListResponse,
+} from '@/modules/content/infrastructure/interfaces/QuestionSuggestionResponse'
 
 export const contentRequests = {
   listSubjects: () => api.get<SubjectListResponse>({ url: contentRoutes.subjects }),
@@ -42,4 +46,7 @@ export const contentRequests = {
     api.post<QuestionResponse>({ url: contentRoutes.questionDeactivate, urlParams: { questionId } }),
   reactivateQuestion: (questionId: string) =>
     api.post<QuestionResponse>({ url: contentRoutes.questionReactivate, urlParams: { questionId } }),
+  // The AI may take up to 45 s on the server; the default 15 s would give up first.
+  suggestQuestions: (topicId: string, data: QuestionSuggestionBody) =>
+    api.post<QuestionSuggestionListResponse>({ url: contentRoutes.topicQuestionSuggestions, urlParams: { topicId }, data, timeoutMs: 55_000 }),
 }

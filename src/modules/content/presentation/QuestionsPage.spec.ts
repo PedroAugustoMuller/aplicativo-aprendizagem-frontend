@@ -11,6 +11,7 @@ import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
 import { configureOffline } from '@/shared/offline/readThrough'
 import { createMemoryStorage, type OfflineStorage } from '@/shared/offline/storage'
+import { configureAiSuggestions } from '@/shared/auth/viewer'
 
 const { listBySubject, listByTopic, deactivate, reactivate } = vi.hoisted(() => ({
   listBySubject: vi.fn(),
@@ -47,6 +48,7 @@ async function render() {
       { path: '/subjects/:subjectId/topics', component: Stub },
       { path: '/subjects/:subjectId/topics/:topicId/questions', component: QuestionsPage },
       { path: '/subjects/:subjectId/topics/:topicId/questions/new', component: Stub },
+      { path: '/subjects/:subjectId/topics/:topicId/questions/suggestions', component: Stub },
       { path: '/subjects/:subjectId/topics/:topicId/questions/:questionId/edit', component: Stub },
     ],
   })
@@ -65,6 +67,7 @@ describe('QuestionsPage', () => {
     storage = createMemoryStorage()
     configureOffline({ userId: () => 'u-1', storage })
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    configureAiSuggestions(() => false)
     listBySubject.mockResolvedValue([{ id: 't-1', name: 'Tabela Periódica', description: '', position: 0, active: true, questionCount: 1 }])
   })
 
@@ -137,5 +140,19 @@ describe('QuestionsPage', () => {
     expect(wrapper.find('[data-testid="offline-banner"]').text()).toContain('09:15')
     expect(wrapper.find('[data-testid="questions-create"]').classes()).toContain('v-btn--disabled')
     expect(wrapper.find('[data-testid="question-toggle-q-1"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('offers "Gerar com IA" only when the feature is on, and not offline', async () => {
+    listByTopic.mockResolvedValue([])
+    configureAiSuggestions(() => false)
+    expect((await render()).wrapper.find('[data-testid="questions-suggest"]').exists()).toBe(false)
+
+    configureAiSuggestions(() => true)
+    const { wrapper } = await render()
+    expect(wrapper.find('[data-testid="questions-suggest"]').attributes('href')).toBe('/subjects/s-1/topics/t-1/questions/suggestions')
+
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+    const offline = await render()
+    expect(offline.wrapper.find('[data-testid="questions-suggest"]').classes()).toContain('v-btn--disabled')
   })
 })

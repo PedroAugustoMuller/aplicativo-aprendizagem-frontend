@@ -3,11 +3,12 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useOnline } from '@vueuse/core'
-import { mdiArrowLeft, mdiCancel, mdiPencil, mdiPlus, mdiRestore } from '@mdi/js'
+import { mdiArrowLeft, mdiCancel, mdiPencil, mdiPlus, mdiRestore, mdiRobotOutline } from '@mdi/js'
 import { useQuestionStore } from '@/modules/content/application/questionStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
+import { useAiSuggestionsEnabled } from '@/shared/auth/viewer'
 import type { Question } from '@/modules/content/domain/Question'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
@@ -20,6 +21,7 @@ const route = useRoute()
 const store = useQuestionStore()
 const topics = useTopicStore()
 const online = useOnline()
+const aiSuggestions = useAiSuggestionsEnabled()
 
 const param = (name: string): string => {
   const value = route.params[name]
@@ -106,6 +108,18 @@ watch(
       >
         {{ title }}
       </h1>
+      <v-btn
+        v-if="aiSuggestions"
+        variant="tonal"
+        color="primary"
+        :prepend-icon="mdiRobotOutline"
+        :to="`${basePath}/suggestions`"
+        :disabled="!online"
+        :title="online ? undefined : t('questions.suggestOffline')"
+        data-testid="questions-suggest"
+      >
+        {{ t('questions.suggest') }}
+      </v-btn>
       <v-btn
         color="primary"
         :prepend-icon="mdiPlus"

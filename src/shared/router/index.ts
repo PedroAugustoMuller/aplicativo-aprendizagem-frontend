@@ -73,6 +73,12 @@ export const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
     },
     {
+      path: '/subjects/:subjectId/topics/:topicId/questions/suggestions',
+      name: 'question-suggestions',
+      component: () => import('@/modules/content/presentation/QuestionSuggestionsPage.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'teacher'] },
+    },
+    {
       path: '/subjects/:subjectId/topics/:topicId/questions/new',
       name: 'question-new',
       component: () => import('@/modules/content/presentation/QuestionFormPage.vue'),
