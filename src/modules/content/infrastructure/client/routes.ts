@@ -8,6 +8,7 @@ export const contentRoutes = {
   topicDeactivate: '/topics/:topicId/deactivate',
   topicReactivate: '/topics/:topicId/reactivate',
   topicQuestions: '/topics/:topicId/questions',
+  topicQuestionSuggestions: '/topics/:topicId/question-suggestions',
   question: '/questions/:questionId',
   questionDeactivate: '/questions/:questionId/deactivate',
   questionReactivate: '/questions/:questionId/reactivate',
