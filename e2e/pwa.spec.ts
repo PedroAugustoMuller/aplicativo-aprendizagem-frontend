@@ -44,3 +44,8 @@ test('the app ships an installable manifest', async ({ page, request }) => {
   expect(manifest.display).toBe('standalone')
   expect(manifest.iconCount).toBeGreaterThanOrEqual(2)
 })
+test('the service worker does not precache the file readers for ai suggestions', async ({ request }) => {
+  const sw = await (await request.get('/sw.js')).text()
+
+  expect(sw).not.toMatch(/pdfText|pptxText|pdf\.worker|jszip/i)
+})
