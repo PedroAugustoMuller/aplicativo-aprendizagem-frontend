@@ -29,6 +29,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2}'],
+        // "Gerar com IA" only works online: a student's phone must not download
+        // ~1.7 MB of pdf.js and JSZip it will never use.
+        globIgnores: ['**/pdfText-*.js', '**/pptxText-*.js', '**/pdf.worker*'],
         // API responses are deliberately NOT cached here. Offline quiz content is
         // RNF03 and belongs with the quiz feature, where the caching policy can be
         // designed against a real payload instead of guessed at now.

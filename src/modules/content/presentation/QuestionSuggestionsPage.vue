@@ -3,11 +3,12 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useOnline } from '@vueuse/core'
-import { mdiArrowLeft, mdiCheck, mdiClose, mdiPencil } from '@mdi/js'
+import { mdiArrowLeft, mdiCheck, mdiClose, mdiPaperclip, mdiPencil } from '@mdi/js'
 import { useQuestionStore } from '@/modules/content/application/questionStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { asPreview, useQuestionSuggestionStore } from '@/modules/content/application/questionSuggestionStore'
 import { SUGGESTION_LIMITS as LIMITS, type SuggestionRequest } from '@/modules/content/domain/QuestionSuggestion'
+import { useSourceFileInput } from '@/modules/content/presentation/useSourceFileInput'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
@@ -92,6 +93,10 @@ const generate = (): Promise<void> => (canGenerate.value ? run(() => store.gener
 const accept = (key: string): Promise<void> => run(() => store.accept(topicId.value, key))
 const acceptAll = (): Promise<void> => run(() => store.acceptAll(topicId.value))
 const editPath = (key: string): string => `${bankPath.value}/new?suggestion=${encodeURIComponent(key)}`
+
+const { fileInput, reading, truncated, fileProblem, attach } = useSourceFileInput((text) => {
+  request.value.sourceText = text
+})
 
 const leaving = ref(false)
 let leaveTarget: string | null = null
@@ -222,7 +227,40 @@ function confirmLeave(): void {
         class="mb-2"
         data-testid="suggestions-source"
       />
-      <!-- Task 9 adds the "Anexar PDF ou slides" button here. -->
+      <input
+        ref="fileInput"
+        type="file"
+        accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        class="d-none"
+        data-testid="suggestions-file"
+        @change="attach"
+      >
+      <v-btn
+        variant="text"
+        :prepend-icon="mdiPaperclip"
+        :loading="reading"
+        class="mb-2 px-0"
+        data-testid="suggestions-attach"
+        @click="fileInput?.click()"
+      >
+        {{ t('questions.suggestions.attach') }}
+      </v-btn>
+      <v-alert
+        v-if="truncated"
+        type="info"
+        variant="tonal"
+        class="mb-2"
+        data-testid="suggestions-truncated"
+        :text="t('questions.suggestions.truncated', { max: LIMITS.sourceText.toLocaleString() })"
+      />
+      <v-alert
+        v-if="fileProblem"
+        type="warning"
+        variant="tonal"
+        class="mb-2"
+        data-testid="suggestions-file-error"
+        :text="t(`questions.suggestions.file.${fileProblem}`)"
+      />
 
       <v-alert
         v-if="tooLong"

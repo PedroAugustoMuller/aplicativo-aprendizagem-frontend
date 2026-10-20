@@ -9,16 +9,18 @@ import * as directives from 'vuetify/directives'
 import QuestionSuggestionsPage from '@/modules/content/presentation/QuestionSuggestionsPage.vue'
 import { i18n } from '@/shared/i18n'
 import { ApiError } from '@/shared/api/error'
+import { SourceFileError } from '@/modules/content/domain/QuestionSuggestion'
 import { configureOffline } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
 
-const { listBySubject, listByTopic, create, suggest } = vi.hoisted(() => ({
-  listBySubject: vi.fn(), listByTopic: vi.fn(), create: vi.fn(), suggest: vi.fn(),
+const { listBySubject, listByTopic, create, suggest, readSourceFile } = vi.hoisted(() => ({
+  listBySubject: vi.fn(), listByTopic: vi.fn(), create: vi.fn(), suggest: vi.fn(), readSourceFile: vi.fn(),
 }))
 
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject } }))
 vi.mock('@/modules/content/infrastructure/HttpQuestionRepository', () => ({ questionRepository: { listByTopic, create } }))
 vi.mock('@/modules/content/infrastructure/HttpQuestionSuggestionRepository', () => ({ questionSuggestionRepository: { suggest } }))
+vi.mock('@/modules/content/application/sourceFile', () => ({ readSourceFile }))
 
 const vuetify = createVuetify({ components, directives })
 const Stub = { render: () => null }
@@ -170,5 +172,30 @@ describe('QuestionSuggestionsPage', () => {
 
     expect(second.wrapper.findAll('[data-testid^="suggestion-item-"]')).toHaveLength(1)
     expect((second.wrapper.find('[data-testid="suggestions-notes"] textarea:not(.v-textarea__sizer)').element as HTMLTextAreaElement).value).toBe('Sem cálculos')
+  })
+
+  it('puts the attached file text in the source field and warns when it was cut', async () => {
+    readSourceFile.mockResolvedValue({ text: 'Texto do PDF', truncated: true })
+    const { wrapper } = await render()
+
+    const input = wrapper.find('[data-testid="suggestions-file"]')
+    Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'aula.pdf')] })
+    await input.trigger('change')
+    await flushPromises()
+
+    expect((wrapper.find('[data-testid="suggestions-source"] textarea:not(.v-textarea__sizer)').element as HTMLTextAreaElement).value).toBe('Texto do PDF')
+    expect(wrapper.find('[data-testid="suggestions-truncated"]').exists()).toBe(true)
+  })
+
+  it('explains a file it cannot read', async () => {
+    readSourceFile.mockRejectedValue(new SourceFileError('no_text'))
+    const { wrapper } = await render()
+
+    const input = wrapper.find('[data-testid="suggestions-file"]')
+    Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'scan.pdf')] })
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="suggestions-file-error"]').text()).toContain('PDF escaneado')
   })
 })
