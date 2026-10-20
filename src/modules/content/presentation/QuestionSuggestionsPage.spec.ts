@@ -1,0 +1,174 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { h } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+import QuestionSuggestionsPage from '@/modules/content/presentation/QuestionSuggestionsPage.vue'
+import { i18n } from '@/shared/i18n'
+import { ApiError } from '@/shared/api/error'
+import { configureOffline } from '@/shared/offline/readThrough'
+import { createMemoryStorage } from '@/shared/offline/storage'
+
+const { listBySubject, listByTopic, create, suggest } = vi.hoisted(() => ({
+  listBySubject: vi.fn(), listByTopic: vi.fn(), create: vi.fn(), suggest: vi.fn(),
+}))
+
+vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject } }))
+vi.mock('@/modules/content/infrastructure/HttpQuestionRepository', () => ({ questionRepository: { listByTopic, create } }))
+vi.mock('@/modules/content/infrastructure/HttpQuestionSuggestionRepository', () => ({ questionSuggestionRepository: { suggest } }))
+
+const vuetify = createVuetify({ components, directives })
+const Stub = { render: () => null }
+const App = { render: () => h(RouterView) }
+const TF = { type: 'true_false', statement: 'O sódio é um metal.', explanation: null, answer: true }
+const MC = {
+  type: 'multiple_choice', statement: 'Símbolo do sódio?', explanation: 'Natrium.',
+  options: [{ id: null, text: 'Na', correct: true }, { id: null, text: 'S', correct: false }],
+}
+const PAGE = '/subjects/s-1/topics/t-1/questions/suggestions'
+
+async function render() {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/subjects/:subjectId/topics/:topicId/questions', component: Stub },
+      { path: '/subjects/:subjectId/topics/:topicId/questions/new', component: Stub },
+      { path: '/subjects/:subjectId/topics/:topicId/questions/suggestions', component: QuestionSuggestionsPage },
+    ],
+  })
+  await router.push(PAGE)
+  const wrapper = mount(App, { global: { plugins: [vuetify, i18n, router] } })
+  await flushPromises()
+
+  return { wrapper, router }
+}
+
+const generate = async (wrapper: ReturnType<typeof mount>) => {
+  await wrapper.find('[data-testid="suggestions-generate"]').trigger('click')
+  await flushPromises()
+}
+
+describe('QuestionSuggestionsPage', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.resetAllMocks()
+    configureOffline({ userId: () => 'u-1', storage: createMemoryStorage() })
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    listBySubject.mockResolvedValue([{ id: 't-1', name: 'Tabela Periódica', description: '', position: 0, active: true, questionCount: 0 }])
+    listByTopic.mockResolvedValue([])
+  })
+
+  it('sends the request and lists the suggestions', async () => {
+    suggest.mockResolvedValue([TF, MC])
+    const { wrapper } = await render()
+
+    await wrapper.find('[data-testid="suggestions-notes"] textarea:not(.v-textarea__sizer)').setValue('Sem cálculos')
+    await generate(wrapper)
+
+    expect(suggest).toHaveBeenCalledWith('t-1', expect.objectContaining({ count: 5, difficulty: 'medium', notes: 'Sem cálculos' }))
+    expect(wrapper.findAll('[data-testid^="suggestion-item-"]')).toHaveLength(2)
+    expect(wrapper.text()).toContain('Símbolo do sódio?')
+  })
+
+  it('accepts one suggestion into the bank and removes its card', async () => {
+    suggest.mockResolvedValue([TF])
+    create.mockResolvedValue({})
+    const { wrapper } = await render()
+    await generate(wrapper)
+
+    await wrapper.find('[data-testid^="suggestion-accept-"]').trigger('click')
+    await flushPromises()
+
+    expect(create).toHaveBeenCalledWith('t-1', expect.any(String), TF)
+    expect(wrapper.findAll('[data-testid^="suggestion-item-"]')).toHaveLength(0)
+  })
+
+  it('discards a suggestion', async () => {
+    suggest.mockResolvedValue([TF, MC])
+    const { wrapper } = await render()
+    await generate(wrapper)
+
+    await wrapper.find('[data-testid^="suggestion-discard-"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-testid^="suggestion-item-"]')).toHaveLength(1)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('edit links to the question form with the suggestion key', async () => {
+    suggest.mockResolvedValue([TF])
+    const { wrapper } = await render()
+    await generate(wrapper)
+
+    const href = wrapper.find('[data-testid^="suggestion-edit-"]').attributes('href')
+    expect(href).toMatch(/^\/subjects\/s-1\/topics\/t-1\/questions\/new\?suggestion=.+/)
+  })
+
+  it('shows the provider error and keeps what was typed', async () => {
+    suggest.mockRejectedValue(new ApiError('content.suggestions.unavailable', {}, 503))
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="suggestions-source"] textarea:not(.v-textarea__sizer)').setValue('O sódio reage com a água.')
+
+    await generate(wrapper)
+
+    expect(wrapper.find('[data-testid="suggestions-error"]').text()).toContain('A IA não respondeu agora')
+    expect((wrapper.find('[data-testid="suggestions-source"] textarea:not(.v-textarea__sizer)').element as HTMLTextAreaElement).value).toBe('O sódio reage com a água.')
+  })
+
+  it('turns a 429 into minutes to wait', async () => {
+    suggest.mockRejectedValue(new ApiError('http.too_many_requests', { retry_after: 125 }, 429))
+    const { wrapper } = await render()
+
+    await generate(wrapper)
+
+    expect(wrapper.find('[data-testid="suggestions-error"]').text()).toContain('Tente de novo em 3 min')
+  })
+
+  it('blocks sending more than 30 000 characters of source text', async () => {
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="suggestions-source"] textarea:not(.v-textarea__sizer)').setValue('a'.repeat(30_001))
+
+    expect(wrapper.find('[data-testid="suggestions-generate"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-testid="suggestions-too-long"]').exists()).toBe(true)
+  })
+
+  it('blocks sending with no type chosen', async () => {
+    const { wrapper } = await render()
+    await wrapper.find('[data-testid="suggestions-type-multiple_choice"] input').setValue(false)
+    await wrapper.find('[data-testid="suggestions-type-true_false"] input').setValue(false)
+
+    expect(wrapper.find('[data-testid="suggestions-generate"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('asks before leaving with pending suggestions, but not when opening one to edit', async () => {
+    suggest.mockResolvedValue([TF])
+    const { wrapper, router } = await render()
+    await generate(wrapper)
+
+    await router.push('/subjects/s-1/topics/t-1/questions')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe(PAGE)
+    expect(wrapper.find('[data-testid="suggestions-leave"]').exists()).toBe(true)
+
+    const key = wrapper.find('[data-testid^="suggestion-item-"]').attributes('data-testid')!.replace('suggestion-item-', '')
+    await router.push(`/subjects/s-1/topics/t-1/questions/new?suggestion=${key}`)
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/subjects/s-1/topics/t-1/questions/new')
+  })
+
+  it('comes back with the suggestions and the form still there', async () => {
+    suggest.mockResolvedValue([TF])
+    const first = await render()
+    await first.wrapper.find('[data-testid="suggestions-notes"] textarea:not(.v-textarea__sizer)').setValue('Sem cálculos')
+    await generate(first.wrapper)
+    first.wrapper.unmount()
+
+    const second = await render()
+
+    expect(second.wrapper.findAll('[data-testid^="suggestion-item-"]')).toHaveLength(1)
+    expect((second.wrapper.find('[data-testid="suggestions-notes"] textarea:not(.v-textarea__sizer)').element as HTMLTextAreaElement).value).toBe('Sem cálculos')
+  })
+})

@@ -6,11 +6,13 @@ import { useOnline } from '@vueuse/core'
 import { mdiArrowLeft, mdiClose, mdiPlus } from '@mdi/js'
 import { useQuestionStore } from '@/modules/content/application/questionStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
+import { useQuestionSuggestionStore } from '@/modules/content/application/questionSuggestionStore'
 import {
   blankForm,
   contentFromForm,
   copyForm,
   formFromQuestion,
+  formFromSuggestion,
   formProblems,
   sameForm,
   type FormProblem,
@@ -41,13 +43,19 @@ const topicId = computed(() => param('topicId'))
 const questionId = computed(() => param('questionId'))
 const isEdit = computed(() => questionId.value !== '')
 const bankPath = computed(() => `/subjects/${subjectId.value}/topics/${topicId.value}/questions`)
+const suggestions = useQuestionSuggestionStore()
+const suggestionKey = typeof route.query.suggestion === 'string' ? route.query.suggestion : ''
+// Opened from "Editar" on an AI suggestion: prefilled, and back to the suggestions afterwards.
+const suggestion = isEdit.value || suggestionKey === '' ? null : suggestions.find(topicId.value, suggestionKey)
+const backPath = computed(() => (suggestion === null ? bankPath.value : `${bankPath.value}/suggestions`))
 const topicName = computed(() => topics.topics.find((topic) => topic.id === topicId.value)?.name ?? t('questions.fallbackTitle'))
 
 const newKey = (): string => globalThis.crypto.randomUUID()
 // One id per visit to this page: a retry after a timeout replays the same create.
-const requestId = globalThis.crypto.randomUUID()
+// A suggestion's key is its id, so accepting it twice is one question.
+const requestId = suggestion?.key ?? globalThis.crypto.randomUUID()
 
-const form = ref<QuestionForm>(blankForm('multiple_choice', newKey))
+const form = ref<QuestionForm>(suggestion === null ? blankForm('multiple_choice', newKey) : formFromSuggestion(suggestion.content, newKey))
 const pristine = ref<QuestionForm>(copyForm(form.value))
 const loadedVersion = ref(0)
 const ready = ref(!isEdit.value)
@@ -148,10 +156,14 @@ async function save(): Promise<void> {
       await store.update(questionId.value, loadedVersion.value, content)
     } else {
       await store.create(requestId, content)
+
+      if (suggestion !== null) {
+        suggestions.discard(topicId.value, suggestion.key)
+      }
     }
 
     allowLeave = true
-    await router.push(bankPath.value)
+    await router.push(backPath.value)
   } catch (failure: unknown) {
     // The form is untouched: everything typed is still there for the retry.
     error.value = failure instanceof ApiError ? failure : new ApiError('system.unexpected_error')
@@ -214,7 +226,7 @@ function confirmLeave(): void {
 <template>
   <div>
     <v-btn
-      :to="bankPath"
+      :to="backPath"
       variant="text"
       :prepend-icon="mdiArrowLeft"
       data-testid="question-form-back"
@@ -425,7 +437,7 @@ function confirmLeave(): void {
 
       <div class="d-flex ga-2">
         <v-btn
-          :to="bankPath"
+          :to="backPath"
           variant="text"
           data-testid="question-form-cancel"
         >
