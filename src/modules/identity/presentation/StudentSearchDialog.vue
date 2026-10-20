@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDebounceFn, useOnline } from '@vueuse/core'
 import { useRosterStore, type EnrolResult } from '@/modules/identity/application/rosterStore'
@@ -7,6 +7,7 @@ import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { StudentMatch } from '@/modules/identity/domain/Student'
 import OfflineHint from '@/shared/ui/OfflineHint.vue'
+import { useFocusOnce } from '@/shared/ui/useFocusOnce'
 
 const props = defineProps<{ modelValue: boolean; classroomId: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; enrolled: [] }>()
@@ -107,6 +108,10 @@ async function submit(): Promise<void> {
     busy.value = false
   }
 }
+
+// Not Vuetify's `autofocus`: its late second focus could pull a user back from the next field (useFocusOnce).
+const firstField = ref<ComponentPublicInstance | null>(null)
+useFocusOnce(firstField)
 </script>
 
 <template>
@@ -126,7 +131,7 @@ async function submit(): Promise<void> {
           :loading="searching"
           autocapitalize="off"
           autocorrect="off"
-          autofocus
+          ref="firstField"
         />
         <p
           v-if="tooShort"

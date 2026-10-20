@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOnline } from '@vueuse/core'
 import { useTeacherStore } from '@/modules/identity/application/teacherStore'
@@ -7,6 +7,7 @@ import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { IssuedAccount } from '@/modules/identity/domain/IssuedAccount'
 import OfflineHint from '@/shared/ui/OfflineHint.vue'
+import { useFocusOnce } from '@/shared/ui/useFocusOnce'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; created: [account: IssuedAccount] }>()
@@ -58,6 +59,10 @@ async function save(): Promise<void> {
     busy.value = false
   }
 }
+
+// Not Vuetify's `autofocus`: its late second focus could pull a user back from the next field (useFocusOnce).
+const firstField = ref<ComponentPublicInstance | null>(null)
+useFocusOnce(firstField)
 </script>
 
 <template>
@@ -77,7 +82,7 @@ async function save(): Promise<void> {
             :label="t('teachers.name')"
             :error-messages="fieldMessages('name')"
             maxlength="120"
-            autofocus
+            ref="firstField"
           />
           <v-text-field
             v-model="email"

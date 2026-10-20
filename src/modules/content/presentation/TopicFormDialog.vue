@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOnline } from '@vueuse/core'
 import { useTopicStore } from '@/modules/content/application/topicStore'
@@ -8,6 +8,7 @@ import { ApiError } from '@/shared/api/error'
 import type { Topic } from '@/modules/content/domain/Topic'
 import type { TopicPatch } from '@/modules/content/domain/TopicRepository'
 import OfflineHint from '@/shared/ui/OfflineHint.vue'
+import { useFocusOnce } from '@/shared/ui/useFocusOnce'
 
 const props = defineProps<{ modelValue: boolean; topic: Topic | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -75,6 +76,10 @@ async function save(): Promise<void> {
     busy.value = false
   }
 }
+
+// Not Vuetify's `autofocus`: its late second focus could pull a user back from the next field (useFocusOnce).
+const firstField = ref<ComponentPublicInstance | null>(null)
+useFocusOnce(firstField)
 </script>
 
 <template>
@@ -95,7 +100,7 @@ async function save(): Promise<void> {
             :error-messages="nameErrors"
             maxlength="120"
             counter="120"
-            autofocus
+            ref="firstField"
           />
           <v-textarea
             v-model="description"

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import { safeRedirect } from '@/shared/router/redirect'
+import { useFocusOnce } from '@/shared/ui/useFocusOnce'
 
 const { t, te } = useI18n()
 const router = useRouter()
@@ -44,6 +45,10 @@ async function submit(): Promise<void> {
     submitting.value = false
   }
 }
+
+// Not Vuetify's `autofocus`: its late second focus could pull a user back from the next field (useFocusOnce).
+const firstField = ref<ComponentPublicInstance | null>(null)
+useFocusOnce(firstField)
 </script>
 
 <template>
@@ -79,7 +84,7 @@ async function submit(): Promise<void> {
               autocapitalize="off"
               autocorrect="off"
               spellcheck="false"
-              autofocus
+              ref="firstField"
             />
             <v-text-field
               v-model="password"

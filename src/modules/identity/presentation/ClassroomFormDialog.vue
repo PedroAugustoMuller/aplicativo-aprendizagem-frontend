@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOnline } from '@vueuse/core'
 import { useClassroomStore } from '@/modules/identity/application/classroomStore'
@@ -7,6 +7,7 @@ import { apiErrorMessage } from '@/shared/i18n/apiErrorMessage'
 import { ApiError } from '@/shared/api/error'
 import type { Classroom } from '@/modules/identity/domain/Classroom'
 import OfflineHint from '@/shared/ui/OfflineHint.vue'
+import { useFocusOnce } from '@/shared/ui/useFocusOnce'
 
 const props = defineProps<{ modelValue: boolean; classroom: Classroom | null }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -61,6 +62,10 @@ async function save(): Promise<void> {
     busy.value = false
   }
 }
+
+// Not Vuetify's `autofocus`: its late second focus could pull a user back from the next field (useFocusOnce).
+const firstField = ref<ComponentPublicInstance | null>(null)
+useFocusOnce(firstField)
 </script>
 
 <template>
@@ -80,7 +85,7 @@ async function save(): Promise<void> {
             :label="t('classrooms.name')"
             :error-messages="fieldMessages('name')"
             maxlength="80"
-            autofocus
+            ref="firstField"
           />
           <v-select
             v-if="classroom === null"
