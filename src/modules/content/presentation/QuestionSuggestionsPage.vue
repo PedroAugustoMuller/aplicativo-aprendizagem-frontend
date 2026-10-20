@@ -5,6 +5,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useOnline } from '@vueuse/core'
 import { mdiArrowLeft, mdiCheck, mdiClose, mdiPaperclip, mdiPencil } from '@mdi/js'
 import { useQuestionStore } from '@/modules/content/application/questionStore'
+import { useSubjectStore } from '@/modules/content/application/subjectStore'
 import { useTopicStore } from '@/modules/content/application/topicStore'
 import { asPreview, useQuestionSuggestionStore } from '@/modules/content/application/questionSuggestionStore'
 import { SUGGESTION_LIMITS as LIMITS, type SuggestionRequest } from '@/modules/content/domain/QuestionSuggestion'
@@ -19,6 +20,7 @@ const { t, te } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const questions = useQuestionStore()
+const subjects = useSubjectStore()
 const topics = useTopicStore()
 const store = useQuestionSuggestionStore()
 const online = useOnline()
@@ -31,6 +33,7 @@ const param = (name: string): string => {
 const subjectId = computed(() => param('subjectId'))
 const topicId = computed(() => param('topicId'))
 const bankPath = computed(() => `/subjects/${subjectId.value}/topics/${topicId.value}/questions`)
+const subjectName = computed(() => subjects.nameOf(subjectId.value) ?? '')
 const topicName = computed(() => topics.topics.find((topic) => topic.id === topicId.value)?.name ?? t('questions.fallbackTitle'))
 
 const request = ref<SuggestionRequest>(store.draft(topicId.value))
@@ -46,6 +49,9 @@ watch(
     if (topics.subjectId !== subject || topics.topics.length === 0) {
       void topics.load(subject)
     }
+
+    // Shows which subject the questions go to: Biologia and Química are easy to mix up.
+    void subjects.ensureLoaded()
   },
   { immediate: true },
 )
@@ -149,6 +155,12 @@ function confirmLeave(): void {
     >
       {{ t('questions.suggestions.title') }}
     </h1>
+    <p
+      class="text-subtitle-1 mb-1"
+      data-testid="suggestions-context"
+    >
+      {{ subjectName === '' ? topicName : `${subjectName} · ${topicName}` }}
+    </p>
     <p class="text-body-2 text-medium-emphasis mb-4">
       {{ t('questions.suggestions.intro') }}
     </p>

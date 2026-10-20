@@ -13,10 +13,11 @@ import { SourceFileError } from '@/modules/content/domain/QuestionSuggestion'
 import { configureOffline } from '@/shared/offline/readThrough'
 import { createMemoryStorage } from '@/shared/offline/storage'
 
-const { listBySubject, listByTopic, create, suggest, readSourceFile } = vi.hoisted(() => ({
-  listBySubject: vi.fn(), listByTopic: vi.fn(), create: vi.fn(), suggest: vi.fn(), readSourceFile: vi.fn(),
+const { list, listBySubject, listByTopic, create, suggest, readSourceFile } = vi.hoisted(() => ({
+  list: vi.fn(), listBySubject: vi.fn(), listByTopic: vi.fn(), create: vi.fn(), suggest: vi.fn(), readSourceFile: vi.fn(),
 }))
 
+vi.mock('@/modules/content/infrastructure/HttpSubjectRepository', () => ({ subjectRepository: { list } }))
 vi.mock('@/modules/content/infrastructure/HttpTopicRepository', () => ({ topicRepository: { listBySubject } }))
 vi.mock('@/modules/content/infrastructure/HttpQuestionRepository', () => ({ questionRepository: { listByTopic, create } }))
 vi.mock('@/modules/content/infrastructure/HttpQuestionSuggestionRepository', () => ({ questionSuggestionRepository: { suggest } }))
@@ -61,6 +62,7 @@ describe('QuestionSuggestionsPage', () => {
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
     listBySubject.mockResolvedValue([{ id: 't-1', name: 'Tabela Periódica', description: '', position: 0, active: true, questionCount: 0 }])
     listByTopic.mockResolvedValue([])
+    list.mockResolvedValue([{ id: 's-1', name: 'Biologia', active: true, canAuthor: true }])
   })
 
   it('sends the request and lists the suggestions', async () => {
@@ -220,5 +222,20 @@ describe('QuestionSuggestionsPage', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="suggestions-file-error"]').text()).toContain('PDF escaneado')
+  })
+
+  it('names the request and the material for what they are', async () => {
+    const { wrapper } = await render()
+
+    expect(wrapper.find('[data-testid="suggestions-notes"]').text()).toContain('Pedido para a IA')
+    expect(wrapper.find('[data-testid="suggestions-notes"]').text()).toContain('3º ano do fundamental')
+    expect(wrapper.find('[data-testid="suggestions-source"]').text()).toContain('Material de base')
+    expect(wrapper.find('[data-testid="suggestions-source"]').text()).toContain('não como instrução')
+  })
+
+  it('shows the subject and the topic the questions will be saved in', async () => {
+    const { wrapper } = await render()
+
+    expect(wrapper.find('[data-testid="suggestions-context"]').text()).toBe('Biologia · Tabela Periódica')
   })
 })
