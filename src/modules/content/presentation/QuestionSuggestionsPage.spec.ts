@@ -159,7 +159,7 @@ describe('QuestionSuggestionsPage', () => {
     await wrapper.find('[data-testid="suggestions-source"] textarea:not(.v-textarea__sizer)').setValue('a'.repeat(30_001))
 
     expect(wrapper.find('[data-testid="suggestions-generate"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('[data-testid="suggestions-too-long"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="suggestions-too-long"]').text()).toContain('O material de base passa de')
   })
 
   it('blocks sending with no type chosen', async () => {

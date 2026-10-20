@@ -125,7 +125,7 @@ export default {
         no_text: 'Não encontramos texto neste arquivo. Se for um PDF escaneado, cole o texto à mão.',
         unreadable: 'Não conseguimos ler este arquivo.',
       },
-      tooLong: 'O texto de base passa de {max} caracteres. Corte um trecho para continuar.',
+      tooLong: 'O material de base passa de {max} caracteres. Corte um trecho para continuar.',
       generate: 'Gerar questões',
       generateMore: 'Gerar mais',
       generating: 'Gerando… pode levar até um minuto.',

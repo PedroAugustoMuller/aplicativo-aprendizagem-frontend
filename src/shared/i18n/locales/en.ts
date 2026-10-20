@@ -125,7 +125,7 @@ export default {
         no_text: 'No text found in this file. If it is a scanned PDF, paste the text by hand.',
         unreadable: 'This file could not be read.',
       },
-      tooLong: 'The source text is over {max} characters. Cut some of it to continue.',
+      tooLong: 'The base material is over {max} characters. Cut some of it to continue.',
       generate: 'Generate questions',
       generateMore: 'Generate more',
       generating: 'Generating… this may take up to a minute.',
