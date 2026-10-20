@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useOnline } from '@vueuse/core'
@@ -23,6 +23,7 @@ import type { Question } from '@/modules/content/domain/Question'
 import ApiErrorAlert from '@/shared/ui/ApiErrorAlert.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import OfflineHint from '@/shared/ui/OfflineHint.vue'
+import { useFocusOnce } from '@/shared/ui/useFocusOnce'
 
 const { t, te } = useI18n()
 const route = useRoute()
@@ -209,6 +210,10 @@ function confirmLeave(): void {
     void router.push(leaveTarget)
   }
 }
+
+// Not Vuetify's `autofocus`: its late second focus could pull a user back from the next field (useFocusOnce).
+const firstField = ref<ComponentPublicInstance | null>(null)
+useFocusOnce(firstField)
 </script>
 
 <template>
@@ -295,7 +300,7 @@ function confirmLeave(): void {
         :maxlength="LIMITS.statement"
         rows="3"
         auto-grow
-        autofocus
+        ref="firstField"
       />
 
       <template v-if="form.type === 'multiple_choice'">

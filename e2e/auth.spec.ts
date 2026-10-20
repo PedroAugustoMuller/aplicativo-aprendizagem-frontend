@@ -23,6 +23,18 @@ test.describe('without a session', () => {
 
     await expect(page).toHaveURL(/\/login/)
   })
+
+  test('the login form does not pull focus back once another field has it', async ({ page }) => {
+    await page.goto('/login')
+    await expect(page.getByTestId('login-identifier').locator('input')).toBeFocused()
+
+    // A teacher who taps the password right away must keep typing there. Vuetify's
+    // autofocus fired a second, deferred focus that took it back to the identifier.
+    await page.getByTestId('login-password').locator('input').focus()
+    await page.waitForTimeout(300)
+
+    await expect(page.getByTestId('login-password').locator('input')).toBeFocused()
+  })
 })
 
 test.describe('without a session, login-issuing tests', () => {

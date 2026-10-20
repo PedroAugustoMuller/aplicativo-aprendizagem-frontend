@@ -132,6 +132,11 @@
   `useDisplay()`; do not write separate mobile components.
 - Prefer Vuetify components and its spacing utilities over custom CSS.
 - Add `data-testid` to anything an end-to-end test needs to reach.
+- Never use Vuetify's `autofocus` prop. It focuses twice (the native attribute,
+  then ~50 ms later from an IntersectionObserver), and on a slow device the late
+  focus pulled a user who had already moved on back to the first field, so their
+  typing landed there (the login e2e caught it under load). Give the field a
+  template ref and call `useFocusOnce(ref)` (`src/shared/ui/useFocusOnce.ts`).
 - Both light and dark palettes are defined explicitly in
   `src/plugins/vuetify.ts`. Check contrast in both — the audience is
   14-year-olds on cheap phone screens (RNF06).
