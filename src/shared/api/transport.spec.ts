@@ -124,4 +124,16 @@ describe('createFetchTransport', () => {
     expect(response.status).toBe(204)
     expect(response.body).toBeNull()
   })
+
+  it('lets one request wait longer than the default timeout', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout')
+    // A Response body reads once: each call gets its own.
+    const fetchImpl = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(200, {})))
+
+    await build(fetchImpl)({ method: 'POST', url: '/slow', data: {}, timeoutMs: 55_000 })
+    await build(fetchImpl)({ method: 'GET', url: '/topics' })
+
+    expect(timeout.mock.calls.map((call) => call[0])).toEqual([55_000, 15_000])
+    timeout.mockRestore()
+  })
 })

@@ -333,6 +333,11 @@ export default {
         invalid_options: 'Confira as alternativas: de 2 a 5, sem repetir, com exatamente uma correta.',
         edited_elsewhere: 'Outra pessoa alterou esta questão enquanto você editava.',
       },
+      suggestions: {
+        disabled: 'A geração com IA não está ligada neste servidor.',
+        unavailable: 'A IA não respondeu agora. Tente de novo em instantes.',
+        empty: 'A IA não gerou questões válidas. Tente mudar o texto ou a observação.',
+      },
       question_not_found: 'Questão não encontrada.',
     },
     identity: {

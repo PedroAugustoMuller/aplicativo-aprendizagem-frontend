@@ -6,6 +6,7 @@ export interface BaseInput {
 
 interface BodyInput {
   data?: unknown
+  timeoutMs?: number
 }
 
 export type GetInput = BaseInput & {

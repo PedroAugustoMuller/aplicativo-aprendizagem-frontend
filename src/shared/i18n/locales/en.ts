@@ -333,6 +333,11 @@ export default {
         invalid_options: 'Check the options: 2 to 5, no repeats, exactly one correct.',
         edited_elsewhere: 'Someone else changed this question while you were editing.',
       },
+      suggestions: {
+        disabled: 'AI generation is not enabled on this server.',
+        unavailable: 'The AI did not answer right now. Try again in a moment.',
+        empty: 'The AI produced no valid questions. Try changing the text or the note.',
+      },
       question_not_found: 'Question not found.',
     },
     identity: {

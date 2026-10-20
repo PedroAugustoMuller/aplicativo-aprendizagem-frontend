@@ -15,6 +15,7 @@ const ANA = {
   login: 'ana@escola.br',
   role: 'admin',
   mustChangePassword: false,
+  aiSuggestions: false,
 } as const
 const ANA_SESSION = { ...ANA, token: 'tok' }
 const ANA_CREDENTIALS = { login: 'ana@escola.br', password: 'password' }
@@ -241,5 +242,14 @@ describe('sessionStore', () => {
     localStorage.setItem('dp2.auth.user', '{"userId":1}')
 
     expect(useSessionStore().knownUser).toBeNull()
+  })
+})
+
+describe('tokenStorage', () => {
+  it('still recognizes a user remembered before ai suggestions existed', () => {
+    localStorage.setItem('dp2.auth.user', JSON.stringify({ userId: 'u-1', name: 'Bruno', login: 'b@x', role: 'teacher', mustChangePassword: false }))
+
+    expect(tokenStorage.readUser()).toEqual({ userId: 'u-1', name: 'Bruno', login: 'b@x', role: 'teacher', mustChangePassword: false, aiSuggestions: false })
+    tokenStorage.clear()
   })
 })

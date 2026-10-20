@@ -39,7 +39,7 @@ export function createFetchTransport(options: FetchTransportOptions): Transport 
         // optional DOM property, and exactOptionalPropertyTypes rejects an explicit
         // `undefined` value for it just as it would for our own types.
         ...(request.data === undefined ? {} : { body: JSON.stringify(request.data) }),
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(request.timeoutMs ?? timeoutMs),
       })
       // Read the body inside the same mapped region as the fetch itself: a
       // connection that drops mid-stream fails here, not at doFetch, and must

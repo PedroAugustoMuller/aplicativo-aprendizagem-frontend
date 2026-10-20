@@ -8,7 +8,7 @@ import { createUnauthorizedHandler } from '@/shared/router/guard'
 import { i18n } from '@/shared/i18n'
 import { configureApiSession } from '@/shared/api/client'
 import { configureOffline } from '@/shared/offline/readThrough'
-import { configureViewer, configureViewerId } from '@/shared/auth/viewer'
+import { configureAiSuggestions, configureViewer, configureViewerId } from '@/shared/auth/viewer'
 import { useSessionStore } from '@/modules/identity/application/sessionStore'
 
 const app = createApp(App)
@@ -32,6 +32,7 @@ configureOffline({ userId: () => session.knownUser?.userId ?? null })
 // Lets a module adapt to the viewer's role without importing identity.
 configureViewer(() => session.knownUser?.role ?? null)
 configureViewerId(() => session.knownUser?.userId ?? null)
+configureAiSuggestions(() => session.knownUser?.aiSuggestions === true)
 
 app.use(router)
 app.mount('#app')

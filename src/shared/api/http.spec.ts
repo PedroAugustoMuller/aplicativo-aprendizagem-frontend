@@ -53,4 +53,12 @@ describe('createHttpClient', () => {
     expect(transport).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: 'POST', data: { email: 'a@b.com' } }))
     expect(transport).toHaveBeenNthCalledWith(2, expect.objectContaining({ method: 'PUT', url: '/topics/1' }))
   })
+
+  it('forwards a per-request timeout to the transport', async () => {
+    const transport = vi.fn<Transport>().mockResolvedValue({ status: 200, ok: true, body: { data: [] } })
+
+    await client(transport).post({ url: '/slow', data: {}, timeoutMs: 55_000 })
+
+    expect(transport).toHaveBeenCalledWith(expect.objectContaining({ method: 'POST', timeoutMs: 55_000 }))
+  })
 })

@@ -23,6 +23,7 @@ const toUser = (response: CurrentUserResponse): AuthenticatedUser => ({
   login: response.login,
   role: toRole(response.role),
   mustChangePassword: response.must_change_password,
+  aiSuggestions: response.features?.ai_suggestions === true,
 })
 
 export const authRepository: AuthRepository = {

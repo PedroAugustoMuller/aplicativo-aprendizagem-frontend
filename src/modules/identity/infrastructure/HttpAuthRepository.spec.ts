@@ -45,6 +45,7 @@ describe('HttpAuthRepository', () => {
       login: 'ana@escola.br',
       role: 'admin',
       mustChangePassword: false,
+      aiSuggestions: false,
       token: 'tok',
     })
   })
@@ -103,7 +104,15 @@ describe('HttpAuthRepository', () => {
     })
 
     await expect(authRepository.currentUser()).resolves.toEqual({
-      userId: 'u-12', name: 'Carla Dias', login: 'carla.dias', role: 'student', mustChangePassword: false,
+      userId: 'u-12', name: 'Carla Dias', login: 'carla.dias', role: 'student', mustChangePassword: false, aiSuggestions: false,
     })
+  })
+
+  it('reads the ai suggestions flag, false when the server sends none', async () => {
+    vi.mocked(identityRequests.currentUser).mockResolvedValueOnce({ ...ANA_RESPONSE, features: { ai_suggestions: true } })
+    vi.mocked(identityRequests.currentUser).mockResolvedValueOnce(ANA_RESPONSE)
+
+    expect((await authRepository.currentUser()).aiSuggestions).toBe(true)
+    expect((await authRepository.currentUser()).aiSuggestions).toBe(false)
   })
 })

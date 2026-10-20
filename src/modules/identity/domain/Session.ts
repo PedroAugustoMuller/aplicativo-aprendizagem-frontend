@@ -7,6 +7,8 @@ export interface AuthenticatedUser {
   readonly login: string
   readonly role: Role
   readonly mustChangePassword: boolean
+  /** Staff on a server with an AI provider: shows "Gerar com IA". */
+  readonly aiSuggestions: boolean
 }
 
 export interface Session extends AuthenticatedUser {
