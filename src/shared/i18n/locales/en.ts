@@ -136,6 +136,7 @@ export default {
       edit: 'Edit',
       discard: 'Discard',
       rateLimited: 'Generation limit reached. Try again in {minutes} min.',
+      rateLimitedHours: 'Generation limit reached. Try again in {hours} h.',
       leaveTitle: 'Leave and lose the suggestions?',
       leaveMessage: 'Suggestions you did not accept will be discarded.',
       leaveConfirm: 'Leave',

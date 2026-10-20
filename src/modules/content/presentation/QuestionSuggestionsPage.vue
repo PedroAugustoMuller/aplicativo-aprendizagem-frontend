@@ -57,27 +57,32 @@ const canGenerate = computed(() => online.value && !busy.value && !tooLong.value
 
 const busy = ref(false)
 const error = ref<ApiError | null>(null)
+// Only a refused generation is the AI limit; a 429 while saving is the API's general one.
+const failedGenerating = ref(false)
 const errorMessage = computed(() => {
   if (error.value === null) {
     return null
   }
 
-  if (error.value.code === 'http.too_many_requests') {
-    const seconds = Number(error.value.params.retry_after ?? 60)
+  if (error.value.code === 'http.too_many_requests' && failedGenerating.value) {
+    const minutes = Math.max(1, Math.ceil(Number(error.value.params.retry_after ?? 60) / 60))
 
-    return t('questions.suggestions.rateLimited', { minutes: Math.max(1, Math.ceil(seconds / 60)) })
+    return minutes > 60
+      ? t('questions.suggestions.rateLimitedHours', { hours: Math.ceil(minutes / 60) })
+      : t('questions.suggestions.rateLimited', { minutes })
   }
 
   return apiErrorMessage(error.value, t, te)
 })
 
-async function run(action: () => Promise<void>): Promise<void> {
+async function run(action: () => Promise<void>, generating = false): Promise<void> {
   if (busy.value) {
     return
   }
 
   busy.value = true
   error.value = null
+  failedGenerating.value = generating
 
   try {
     await action()
@@ -89,7 +94,7 @@ async function run(action: () => Promise<void>): Promise<void> {
   }
 }
 
-const generate = (): Promise<void> => (canGenerate.value ? run(() => store.generate(topicId.value, request.value)) : Promise.resolve())
+const generate = (): Promise<void> => (canGenerate.value ? run(() => store.generate(topicId.value, request.value), true) : Promise.resolve())
 const accept = (key: string): Promise<void> => run(() => store.accept(topicId.value, key))
 const acceptAll = (): Promise<void> => run(() => store.acceptAll(topicId.value))
 const editPath = (key: string): string => `${bankPath.value}/new?suggestion=${encodeURIComponent(key)}`

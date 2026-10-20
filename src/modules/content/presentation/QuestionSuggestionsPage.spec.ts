@@ -129,6 +129,29 @@ describe('QuestionSuggestionsPage', () => {
     expect(wrapper.find('[data-testid="suggestions-error"]').text()).toContain('Tente de novo em 3 min')
   })
 
+  it('counts a daily limit in hours, not thousands of minutes', async () => {
+    suggest.mockRejectedValue(new ApiError('http.too_many_requests', { retry_after: 80_000 }, 429))
+    const { wrapper } = await render()
+
+    await generate(wrapper)
+
+    expect(wrapper.find('[data-testid="suggestions-error"]').text()).toContain('Tente de novo em 23 h')
+  })
+
+  it('a 429 while accepting is not called a generation limit', async () => {
+    suggest.mockResolvedValue([TF])
+    create.mockRejectedValue(new ApiError('http.too_many_requests', { retry_after: 30 }, 429))
+    const { wrapper } = await render()
+    await generate(wrapper)
+
+    await wrapper.find('[data-testid^="suggestion-accept-"]').trigger('click')
+    await flushPromises()
+
+    const text = wrapper.find('[data-testid="suggestions-error"]').text()
+    expect(text).toContain('Muitas tentativas seguidas')
+    expect(text).not.toContain('Limite de gerações')
+  })
+
   it('blocks sending more than 30 000 characters of source text', async () => {
     const { wrapper } = await render()
     await wrapper.find('[data-testid="suggestions-source"] textarea:not(.v-textarea__sizer)').setValue('a'.repeat(30_001))

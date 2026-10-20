@@ -136,6 +136,7 @@ export default {
       edit: 'Editar',
       discard: 'Descartar',
       rateLimited: 'Limite de gerações atingido. Tente de novo em {minutes} min.',
+      rateLimitedHours: 'Limite de gerações atingido. Tente de novo em {hours} h.',
       leaveTitle: 'Sair e perder as sugestões?',
       leaveMessage: 'As sugestões que você não aceitou serão descartadas.',
       leaveConfirm: 'Sair',
